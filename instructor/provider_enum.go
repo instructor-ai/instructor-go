@@ -1,4 +1,4 @@
-package llm
+package instructor
 
 type Provider int
 
