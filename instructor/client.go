@@ -2,9 +2,15 @@ package instructor
 
 import (
 	"context"
+	"encoding/json"
 )
 
-type Client[T any] interface {
+type JSONMarshalable[T any] interface {
+	json.Marshaler
+	json.Unmarshaler
+}
+
+type Client[T JSONMarshalable[T]] interface {
 	CreateCompletion(
 		ctx context.Context,
 		messages []Message,
@@ -35,4 +41,8 @@ func WithMode(mode Mode) ClientOptions {
 
 func WithMaxRetries(maxRetries int) ClientOptions {
 	return ClientOptions{MaxRetries: maxRetries}
+}
+
+func FromOpenAI[T JSONMarshalable[T]]() *Client[T] {
+	panic("not implemented")
 }
