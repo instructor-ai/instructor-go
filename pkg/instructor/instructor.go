@@ -8,23 +8,25 @@ import (
 )
 
 type Instructor[T any] struct {
-	Client   Client[T]
-	Provider Provider
-	Mode     Mode
+	Client     Client[T]
+	Provider   Provider
+	Mode       Mode
+	MaxRetries int
 }
 
 func FromOpenAI[T any](client *openai.Client, opts ...Options) (*Instructor[T], error) {
 	options := mergeOptions(opts...)
 
-	openaiClient, err := NewOpenAIClient[T](client, *options.Mode)
+	openaiClient, err := NewOpenAIClient[T](client, *options.Mode, *options.MaxRetries)
 	if err != nil {
 		return nil, err
 	}
 
 	i := &Instructor[T]{
-		Client:   openaiClient,
-		Provider: OpenAI,
-		Mode:     *options.Mode,
+		Client:     openaiClient,
+		Provider:   OpenAI,
+		Mode:       *options.Mode,
+		MaxRetries: *options.MaxRetries,
 	}
 	return i, nil
 }

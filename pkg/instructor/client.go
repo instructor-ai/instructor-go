@@ -8,7 +8,6 @@ type Client[T any] interface {
 	CreateChatCompletion(
 		ctx context.Context,
 		request ChatCompletionRequest,
-		opts ...Options,
 	) (*T, error)
 
 	// TODO: implement streaming

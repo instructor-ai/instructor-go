@@ -45,7 +45,7 @@ func main() {
 	fmt.Printf(`
 Name: %s
 Age:  %d
-		`, person.Name, person.Age)
+`, person.Name, person.Age)
 	/*
 		Name: Robby
 		Age:  22
