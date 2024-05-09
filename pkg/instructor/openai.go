@@ -2,91 +2,51 @@ package instructor
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 
-	"github.com/invopop/jsonschema"
 	openai "github.com/sashabaranov/go-openai"
 )
 
-type OpenAIClient[T any] struct {
+type OpenAIClient struct {
 	client *openai.Client
 
-	mode       Mode
-	maxRetries int
-
-	schema    *jsonschema.Schema
 	schemaStr []byte
+	mode      Mode
 }
 
-var _ Client[struct{}] = &OpenAIClient[struct{}]{}
+var _ Client = &OpenAIClient{}
 
-func NewOpenAIClient[T any](client *openai.Client, mode Mode, maxRetries int) (*OpenAIClient[T], error) {
-
-	schema := jsonschema.Reflect(new(T))
-	schemaStr, err := json.MarshalIndent(schema, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-
-	o := &OpenAIClient[T]{
-		client:     client,
-		mode:       mode,
-		maxRetries: maxRetries,
-		schema:     schema,
-		schemaStr:  schemaStr,
+func NewOpenAIClient(client *openai.Client, schemaStr []byte, mode Mode) (*OpenAIClient, error) {
+	o := &OpenAIClient{
+		client:    client,
+		mode:      mode,
+		schemaStr: schemaStr,
 	}
 	return o, nil
 }
 
-func (o *OpenAIClient[T]) CreateChatCompletion(ctx context.Context, request ChatCompletionRequest) (*T, error) {
-
-	for attempt := 0; attempt < o.maxRetries; attempt++ {
-
-		text, err := o.createChatCompletionModeHandler(ctx, request)
-		if err != nil {
-			// don't retry marshalling + validation error
-			return nil, err
-		}
-
-		println(text)
-
-		// Process response
-
-		t := new(T)
-
-		err = json.Unmarshal([]byte(text), t)
-		if err != nil {
-			// TODO: add more sophisticated retry logic (send back json and parse error for model to fix).
-			//       Now, its just retrying from scratch
-			continue
-		}
-
-		return t, nil
-	}
-
-	return nil, errors.New("hit max retry attempts")
+func (o *OpenAIClient) CreateChatCompletion(ctx context.Context, request Request) (string, error) {
+	return o.completionModeHandler(ctx, request)
 }
 
-func (o *OpenAIClient[T]) createChatCompletionModeHandler(ctx context.Context, request ChatCompletionRequest) (string, error) {
+func (o *OpenAIClient) completionModeHandler(ctx context.Context, request Request) (string, error) {
 	switch o.mode {
 	case ModeToolCall:
-		return o.createChatCompletionToolCall(ctx, request)
+		return o.completionToolCall(ctx, request)
 	case ModeJSON:
-		return o.createChatCompletionJSON(ctx, request)
+		return o.completionJSON(ctx, request)
 	case ModeJSONSchema:
-		return o.createChatCompletionJSONSchema(ctx, request)
+		return o.completionJSONSchema(ctx, request)
 	default:
 		return "", fmt.Errorf("mode '%s' is not supported for OpenAI", o.mode)
 	}
 }
 
-func (o *OpenAIClient[T]) createChatCompletionToolCall(ctx context.Context, request ChatCompletionRequest) (string, error) {
+func (o *OpenAIClient) completionToolCall(ctx context.Context, request Request) (string, error) {
 	panic("not implemented")
 }
 
-func (o *OpenAIClient[T]) createChatCompletionJSON(ctx context.Context, request ChatCompletionRequest) (string, error) {
+func (o *OpenAIClient) completionJSON(ctx context.Context, request Request) (string, error) {
 	message := fmt.Sprintf(`
 Please responsd with json in the following json_schema:
 
@@ -95,7 +55,7 @@ Please responsd with json in the following json_schema:
 Make sure to return an instance of the JSON, not the schema itself
 `, o.schemaStr)
 
-	msg := openai.ChatCompletionMessage{
+	msg := Message{
 		Role:    RoleSystem,
 		Content: message,
 	}
@@ -103,11 +63,9 @@ Make sure to return an instance of the JSON, not the schema itself
 	request.Messages = prepend(request.Messages, msg)
 
 	// Set JSON mode
-	request.ResponseFormat = &openai.ChatCompletionResponseFormat{
-		Type: openai.ChatCompletionResponseFormatTypeJSONObject,
-	}
+	request.ResponseFormat = &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject}
 
-	resp, err := o.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest(request))
+	resp, err := o.client.CreateChatCompletion(ctx, request)
 	if err != nil {
 		return "", err
 	}
@@ -117,7 +75,7 @@ Make sure to return an instance of the JSON, not the schema itself
 	return text, nil
 }
 
-func (o *OpenAIClient[T]) createChatCompletionJSONSchema(ctx context.Context, request ChatCompletionRequest) (string, error) {
+func (o *OpenAIClient) completionJSONSchema(ctx context.Context, request Request) (string, error) {
 
 	message := fmt.Sprintf(`
 Please responsd with json in the following json_schema:
@@ -127,14 +85,14 @@ Please responsd with json in the following json_schema:
 Make sure to return an instance of the JSON, not the schema itself
 `, o.schemaStr)
 
-	msg := openai.ChatCompletionMessage{
+	msg := Message{
 		Role:    RoleSystem,
 		Content: message,
 	}
 
 	request.Messages = prepend(request.Messages, msg)
 
-	resp, err := o.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest(request))
+	resp, err := o.client.CreateChatCompletion(ctx, request)
 	if err != nil {
 		return "", err
 	}

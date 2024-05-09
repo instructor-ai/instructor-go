@@ -28,9 +28,9 @@ func main() {
 
 	person, err := client.CreateChatCompletion(
 		ctx,
-		instructor.ChatCompletionRequest{
+		instructor.Request{
 			Model: openai.GPT4Turbo20240409,
-			Messages: []openai.ChatCompletionMessage{
+			Messages: []instructor.Message{
 				{
 					Role:    instructor.RoleUser,
 					Content: "Extract Robby is 22 years old.",

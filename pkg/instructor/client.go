@@ -4,11 +4,11 @@ import (
 	"context"
 )
 
-type Client[T any] interface {
+type Client interface {
 	CreateChatCompletion(
 		ctx context.Context,
-		request ChatCompletionRequest,
-	) (*T, error)
+		request Request,
+	) (string, error)
 
 	// TODO: implement streaming
 	// CreateChatCompletionStream(

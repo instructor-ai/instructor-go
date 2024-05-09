@@ -4,8 +4,6 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-type ChatCompletionRequest openai.ChatCompletionRequest
+type Message = openai.ChatCompletionMessage
 
-// type ChatCompletionRequest struct {
-// 	openai.ChatCompletionRequest
-// }
+type Request = openai.ChatCompletionRequest
