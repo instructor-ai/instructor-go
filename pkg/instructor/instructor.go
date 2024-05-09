@@ -10,21 +10,30 @@ import (
 type Instructor[T any] struct {
 	Client   Client[T]
 	Provider Provider
+	Mode     Mode
 }
 
-func FromOpenAI[T any](client *openai.Client) *Instructor[T] {
-	i := &Instructor[T]{
-		Client:   &OpenAIClient[T]{client: client},
-		Provider: OpenAI,
+func FromOpenAI[T any](client *openai.Client, opts ...Options) (*Instructor[T], error) {
+	options := mergeOptions(opts...)
+
+	openaiClient, err := NewOpenAIClient[T](client, *options.Mode)
+	if err != nil {
+		return nil, err
 	}
-	return i
+
+	i := &Instructor[T]{
+		Client:   openaiClient,
+		Provider: OpenAI,
+		Mode:     *options.Mode,
+	}
+	return i, nil
 }
 
-func FromAnthropic[T any](cli *anthropic.Client) *Instructor[T] {
+func FromAnthropic[T any](cli *anthropic.Client) (*Instructor[T], error) {
 	panic("not implemented")
 }
 
 // CreateChatCompletion implements Client.
-func (i *Instructor[T]) CreateChatCompletion(ctx context.Context, request ChatCompletionRequest, opts ...ClientOptions) (*T, error) {
-	return i.Client.CreateChatCompletion(ctx, request, opts...)
+func (i *Instructor[T]) CreateChatCompletion(ctx context.Context, request ChatCompletionRequest) (*T, error) {
+	return i.Client.CreateChatCompletion(ctx, request)
 }

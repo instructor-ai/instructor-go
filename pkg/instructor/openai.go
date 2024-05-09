@@ -10,21 +10,41 @@ import (
 )
 
 type OpenAIClient[T any] struct {
-	client     *openai.Client
-	jsonSchema jsonschema.Schema
+	client *openai.Client
+	mode   Mode
+
+	schema    *jsonschema.Schema
+	schemaStr []byte
 }
 
 var _ Client[struct{}] = &OpenAIClient[struct{}]{}
 
-func (o *OpenAIClient[T]) CreateChatCompletion(ctx context.Context, request ChatCompletionRequest, opts ...ClientOptions) (*T, error) {
+func NewOpenAIClient[T any](client *openai.Client, mode Mode) (*OpenAIClient[T], error) {
 
-	t := new(T)
-	tSchema := jsonschema.Reflect(t)
-
-	jsonSchema, err := json.MarshalIndent(tSchema, "", "  ")
+	schema := jsonschema.Reflect(new(T))
+	schemaStr, err := json.MarshalIndent(schema, "", "  ")
 	if err != nil {
 		return nil, err
 	}
+
+	o := &OpenAIClient[T]{
+		client:    client,
+		mode:      mode,
+		schema:    schema,
+		schemaStr: schemaStr,
+	}
+	return o, nil
+}
+
+func (o *OpenAIClient[T]) CreateChatCompletion(ctx context.Context, request ChatCompletionRequest, opts ...Options) (*T, error) {
+
+	switch o.mode {
+	case ModeTool:
+	case ModeJSON:
+	case ModeJSONSchema:
+	}
+
+	t := new(T)
 
 	message := fmt.Sprintf(`
 Please responsd with json in the following json_schema:
@@ -32,16 +52,14 @@ Please responsd with json in the following json_schema:
 %s
 
 Make sure to return an instance of the JSON, not the schema itself
-`, jsonSchema)
+`, o.schemaStr)
 
 	msg := openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleUser,
+		Role:    RoleSystem,
 		Content: message,
 	}
 
-	request.Messages = insertAtFront(request.Messages, msg)
-
-	fmt.Printf("request:\n\b%+v\n\n", request)
+	request.Messages = prepend(request.Messages, msg)
 
 	resp, err := o.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest(request))
 	if err != nil {
@@ -50,17 +68,10 @@ Make sure to return an instance of the JSON, not the schema itself
 
 	text := resp.Choices[0].Message.Content
 
-	fmt.Printf("Returned text:\n\n%s\n\n", text)
-
 	err = json.Unmarshal([]byte(text), t)
 	if err != nil {
 		return nil, err
 	}
 
 	return t, nil
-}
-
-// TODO: move to utils
-func insertAtFront[T any](to []T, from T) []T {
-	return append([]T{from}, to...)
 }
