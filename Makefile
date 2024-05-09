@@ -5,16 +5,12 @@
 BINARY_NAME := instructor
 BINARY_DIR := bin
 GO_SOURCES := $(shell find . -name '*.go')
-GO_LINT_TOOLS := $(shell go env GOPATH)/bin/golangci-lint
+GO_LINT_TOOLS := golangci-lint
 
 # Build target
 build: $(GO_SOURCES)
 	mkdir -p $(BINARY_DIR)
 	go build -o $(BINARY_DIR)/$(BINARY_NAME)
-
-# Install dependencies
-install-deps:
-	go get -u golang.org/x/lint/golint
 
 # Clean target
 .PHONY: clean
@@ -28,7 +24,7 @@ fmt:
 
 # Lint target
 .PHONY: lint
-lint: install-deps
+lint:
 	$(GO_LINT_TOOLS) run
 
 # Test target

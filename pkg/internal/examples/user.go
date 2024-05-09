@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/instructor-ai/instructor-go/pkg/instructor"
-	"github.com/instructor-ai/instructor-go/pkg/instructor/modes"
 	openai "github.com/sashabaranov/go-openai"
 )
 
@@ -18,23 +17,26 @@ type Person struct {
 func main() {
 	ctx := context.Background()
 
-	oai := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
-
-	client := instructor.FromOpenAI[Person](oai)
+	client, err := instructor.FromOpenAI[Person](
+		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
+		instructor.WithMode(instructor.ModeJSON),
+		instructor.WithMaxRetries(5),
+	)
+	if err != nil {
+		panic(err)
+	}
 
 	person, err := client.CreateChatCompletion(
 		ctx,
-		instructor.ChatCompletionRequest{
+		instructor.Request{
 			Model: openai.GPT4Turbo20240409,
-			Messages: []openai.ChatCompletionMessage{
+			Messages: []instructor.Message{
 				{
-					Role:    openai.ChatMessageRoleUser,
+					Role:    instructor.RoleUser,
 					Content: "Extract Robby is 22 years old.",
 				},
 			},
 		},
-		instructor.WithMode(modes.JSON),
-		instructor.WithMaxRetries(5),
 	)
 	if err != nil {
 		panic(err)
@@ -43,7 +45,7 @@ func main() {
 	fmt.Printf(`
 Name: %s
 Age:  %d
-		`, person.Name, person.Age)
+`, person.Name, person.Age)
 	/*
 		Name: Robby
 		Age:  22
