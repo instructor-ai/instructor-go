@@ -21,3 +21,6 @@
 go.work
 bin
 .env
+.venv
+.cache/plugin/social
+site
