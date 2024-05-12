@@ -68,10 +68,7 @@ Age:  %d
 
 ## Coming Soon
 
-1. Currently, `json` nor `jsonschema` supports serialization of Go struct methods to JSON, but we are looking to add this soon to enable function calling.
-    - We want to add a flag/method to `jsonschema` to support this: [related issue]().
-
-2. Streaming support
+1. Streaming support
 
 ## Providers
 
