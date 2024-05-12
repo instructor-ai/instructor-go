@@ -62,13 +62,14 @@ func segment(ctx context.Context, data string) *Searches {
 func main() {
 	ctx := context.Background()
 
-	q := "Search for a picture of a cat, a video of a dog, and what taxonomic rank they share"
+	q := "Search for a picture of a cat, a video of a dog, and the taxonomy of each"
 	for _, search := range *segment(ctx, q) {
 		search.execute()
 	}
 	/*
 		Searching for `cat` with query `picture of a cat` using `image`
 		Searching for `dog` with query `video of a dog` using `video`
-		Searching for `taxonomy` with query `taxonomic rank shared by cats and dogs` using `web`
+		Searching for `cat` with query `taxonomy of a cat` using `web`
+		Searching for `dog` with query `taxonomy of a dog` using `web`
 	*/
 }
