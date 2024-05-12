@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type Client interface {
+type Client[T any] interface {
 	CreateChatCompletion(
 		ctx context.Context,
 		request Request,
