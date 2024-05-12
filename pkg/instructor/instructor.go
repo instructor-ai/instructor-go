@@ -4,37 +4,37 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-
-	"github.com/invopop/jsonschema"
+	"reflect"
 
 	"github.com/madebywelch/anthropic-go/v2/pkg/anthropic"
 	"github.com/sashabaranov/go-openai"
 )
 
 type Instructor[T any] struct {
-	Client     Client
+	Client     Client[T]
 	Provider   Provider
 	Mode       Mode
 	MaxRetries int
 
-	Schema    *jsonschema.Schema
-	SchemaStr []byte
+	Schema *Schema[T]
+	Type   reflect.Type
 }
 
 func FromOpenAI[T any](client *openai.Client, opts ...Options) (*Instructor[T], error) {
 
 	options := mergeOptions(opts...)
 
-	schema := jsonschema.Reflect(new(T))
-	schemaStr, err := json.MarshalIndent(schema, "", "  ")
+	schema, err := NewSchema[T]()
 	if err != nil {
 		return nil, err
 	}
 
-	openaiClient, err := NewOpenAIClient(client, schemaStr, *options.Mode)
+	openaiClient, err := NewOpenAIClient(client, schema, *options.Mode)
 	if err != nil {
 		return nil, err
 	}
+
+	t := reflect.TypeOf(new(T))
 
 	i := &Instructor[T]{
 		Client:     openaiClient,
@@ -42,7 +42,7 @@ func FromOpenAI[T any](client *openai.Client, opts ...Options) (*Instructor[T], 
 		Mode:       *options.Mode,
 		MaxRetries: *options.MaxRetries,
 		Schema:     schema,
-		SchemaStr:  schemaStr,
+		Type:       t,
 	}
 	return i, nil
 }
@@ -68,6 +68,9 @@ func (i *Instructor[T]) CreateChatCompletion(ctx context.Context, request Reques
 			//
 			// Currently, its just recalling with no new information
 			// or attempt to fix the error with the last generated JSON
+			println(text)
+			println()
+			println(err.Error())
 			continue
 		}
 
@@ -85,6 +88,8 @@ func (i *Instructor[T]) processResponse(response string) (*T, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: if direct unmarshal fails: check common erors like wrapping struct with key name of struct, instead of just the value
 
 	return t, nil
 }
