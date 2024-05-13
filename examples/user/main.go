@@ -20,7 +20,7 @@ func main() {
 	client, err := instructor.FromOpenAI[Person](
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
-		instructor.WithMaxRetries(5),
+		instructor.WithMaxRetries(3),
 	)
 	if err != nil {
 		panic(err)

@@ -6,8 +6,8 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/madebywelch/anthropic-go/v2/pkg/anthropic"
-	"github.com/sashabaranov/go-openai"
+	anthropic "github.com/liushuangls/go-anthropic/v2"
+	openai "github.com/sashabaranov/go-openai"
 )
 
 type Instructor[T any] struct {
@@ -29,7 +29,7 @@ func FromOpenAI[T any](client *openai.Client, opts ...Options) (*Instructor[T], 
 		return nil, err
 	}
 
-	openaiClient, err := NewOpenAIClient(client, schema, *options.Mode)
+	cli, err := NewOpenAIClient(client, schema, *options.Mode)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func FromOpenAI[T any](client *openai.Client, opts ...Options) (*Instructor[T], 
 	t := reflect.TypeOf(new(T))
 
 	i := &Instructor[T]{
-		Client:     openaiClient,
+		Client:     cli,
 		Provider:   OpenAI,
 		Mode:       *options.Mode,
 		MaxRetries: *options.MaxRetries,
@@ -47,8 +47,31 @@ func FromOpenAI[T any](client *openai.Client, opts ...Options) (*Instructor[T], 
 	return i, nil
 }
 
-func FromAnthropic[T any](cli *anthropic.Client) (*Instructor[T], error) {
-	panic("not implemented")
+func FromAnthropic[T any](client *anthropic.Client, opts ...Options) (*Instructor[T], error) {
+
+	options := mergeOptions(opts...)
+
+	schema, err := NewSchema[T]()
+	if err != nil {
+		return nil, err
+	}
+
+	cli, err := NewAnthropicClient(client, schema, *options.Mode)
+	if err != nil {
+		return nil, err
+	}
+
+	t := reflect.TypeOf(new(T))
+
+	i := &Instructor[T]{
+		Client:     cli,
+		Provider:   OpenAI,
+		Mode:       *options.Mode,
+		MaxRetries: *options.MaxRetries,
+		Schema:     schema,
+		Type:       t,
+	}
+	return i, nil
 }
 
 func (i *Instructor[T]) CreateChatCompletion(ctx context.Context, request Request) (*T, error) {
@@ -58,6 +81,8 @@ func (i *Instructor[T]) CreateChatCompletion(ctx context.Context, request Reques
 		text, err := i.Client.CreateChatCompletion(ctx, request)
 		if err != nil {
 			// no retry on non-marshalling/validation errors
+			println(text)
+			println(err.Error())
 			return nil, err
 		}
 
@@ -69,7 +94,6 @@ func (i *Instructor[T]) CreateChatCompletion(ctx context.Context, request Reques
 			// Currently, its just recalling with no new information
 			// or attempt to fix the error with the last generated JSON
 			println(text)
-			println()
 			println(err.Error())
 			continue
 		}

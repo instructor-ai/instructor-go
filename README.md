@@ -83,4 +83,4 @@ Age:  %d
 Most model API providers do not provide an official Go client, so here are the ones we chose for the following providers:
 
 - [OpenAI](https://github.com/sashabaranov/go-openai)
-- [Anthropic](https://github.com/madebywelch/anthropic-go)
+- [Anthropic](https://github.com/liushuangls/go-anthropic)

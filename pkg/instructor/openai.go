@@ -10,8 +10,9 @@ import (
 )
 
 type OpenAIClient[T any] struct {
-	client *openai.Client
+	Name string
 
+	client *openai.Client
 	schema *Schema[T]
 	mode   Mode
 }
@@ -20,6 +21,7 @@ var _ Client[any] = &OpenAIClient[any]{}
 
 func NewOpenAIClient[T any](client *openai.Client, schema *Schema[T], mode Mode) (*OpenAIClient[T], error) {
 	o := &OpenAIClient[T]{
+		Name:   "OpenAI",
 		client: client,
 		schema: schema,
 		mode:   mode,
@@ -40,7 +42,7 @@ func (o *OpenAIClient[any]) completionModeHandler(ctx context.Context, request R
 	case ModeJSONSchema:
 		return o.completionJSONSchema(ctx, request)
 	default:
-		return "", fmt.Errorf("mode '%s' is not supported for OpenAI", o.mode)
+		return "", fmt.Errorf("mode '%s' is not supported for %s", o.mode, o.Name)
 	}
 }
 
@@ -61,7 +63,6 @@ func (o *OpenAIClient[any]) completionToolCall(ctx context.Context, request Requ
 		tools = append(tools, t)
 	}
 
-	// Set Tool mode
 	request.Tools = tools
 
 	resp, err := o.client.CreateChatCompletion(ctx, request)
