@@ -34,7 +34,7 @@ func segment(ctx context.Context, data string) *Searches {
 	client, err := instructor.FromOpenAI[Searches](
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeToolCall),
-		instructor.WithMaxRetries(1),
+		instructor.WithMaxRetries(3),
 	)
 	if err != nil {
 		panic(err)
