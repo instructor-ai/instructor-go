@@ -24,3 +24,6 @@ bin
 .venv
 .cache
 site
+
+# DS_Store
+.DS_Store
