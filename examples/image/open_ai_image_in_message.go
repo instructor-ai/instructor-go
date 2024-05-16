@@ -39,7 +39,7 @@ func main() {
 		panic(err)
 	}
 
-	url := "https://example.com/your-image-url.png" // Replace with your image URL
+	url := "https://utfs.io/f/fe55d6bd-e920-4a6f-8e93-a4c9dd851b90-eivhb2.png"
 
 	bookCatalog, err := client.CreateChatCompletion(
 		ctx,
