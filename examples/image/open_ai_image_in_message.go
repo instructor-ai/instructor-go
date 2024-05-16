@@ -10,7 +10,7 @@ import (
 )
 
 type Book struct {
-	Title  string  `json:"title,omitempty" jsonschema:"title=title,description=The title of the book,example=Harry Potter and the Philosopher's Stone"`
+	Title  string  `json:"title,omitempty"  jsonschema:"title=title,description=The title of the book,example=Harry Potter and the Philosopher's Stone"`
 	Author *string `json:"author,omitempty" jsonschema:"title=author,description=The author of the book,example=J.K. Rowling"`
 }
 
@@ -19,10 +19,10 @@ type BookCatalog struct {
 }
 
 func (bc *BookCatalog) PrintCatalog() {
-	fmt.Println("Number of books in the catalog:", len(bc.Catalog))
+	fmt.Printf("Number of books in the catalog: %d\n\n", len(bc.Catalog))
 	for _, book := range bc.Catalog {
-		fmt.Println("Title:", book.Title)
-		fmt.Println("Author:", book.Author)
+		fmt.Printf("Title:  %s\n", book.Title)
+		fmt.Printf("Author: %s\n", *book.Author)
 		fmt.Println("--------------------")
 	}
 }
@@ -33,7 +33,7 @@ func main() {
 	client, err := instructor.FromOpenAI[BookCatalog](
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
-		instructor.WithMaxRetries(5),
+		instructor.WithMaxRetries(3),
 	)
 	if err != nil {
 		panic(err)
@@ -44,7 +44,7 @@ func main() {
 	bookCatalog, err := client.CreateChatCompletion(
 		ctx,
 		instructor.Request{
-			Model: openai.GPT4Turbo20240409,
+			Model: openai.GPT4o,
 			Messages: []instructor.Message{
 				{
 					Role: instructor.RoleUser,
@@ -69,6 +69,54 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Number of books in the catalog:", len(bookCatalog.Catalog))
 	bookCatalog.PrintCatalog()
+	/*
+		Number of books in the catalog: 15
+
+		Title:  Pride and Prejudice
+		Author: Jane Austen
+		--------------------
+		Title:  The Great Gatsby
+		Author: F. Scott Fitzgerald
+		--------------------
+		Title:  The Catcher in the Rye
+		Author: J. D. Salinger
+		--------------------
+		Title:  Don Quixote
+		Author: Miguel de Cervantes
+		--------------------
+		Title:  One Hundred Years of Solitude
+		Author: Gabriel García Márquez
+		--------------------
+		Title:  To Kill a Mockingbird
+		Author: Harper Lee
+		--------------------
+		Title:  Beloved
+		Author: Toni Morrison
+		--------------------
+		Title:  Ulysses
+		Author: James Joyce
+		--------------------
+		Title:  Harry Potter and the Cursed Child
+		Author: J.K. Rowling
+		--------------------
+		Title:  The Grapes of Wrath
+		Author: John Steinbeck
+		--------------------
+		Title:  1984
+		Author: George Orwell
+		--------------------
+		Title:  Lolita
+		Author: Vladimir Nabokov
+		--------------------
+		Title:  Anna Karenina
+		Author: Leo Tolstoy
+		--------------------
+		Title:  Moby-Dick
+		Author: Herman Melville
+		--------------------
+		Title:  Wuthering Heights
+		Author: Emily Brontë
+		--------------------
+	*/
 }
