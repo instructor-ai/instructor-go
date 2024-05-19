@@ -10,8 +10,8 @@ import (
 )
 
 type Movie struct {
-	Title string `json:"title"  jsonschema:"title=title,description=The title of the movie,example=Harry Potter and the Philosopher's Stone"`
-	Year  int    `json:"year,omitempty"   jsonschema:"title=year,description=The year of the movie,example=2001"`
+	Title string `json:"title"          jsonschema:"title=title,description=The title of the movie,required=true,example=Ex Machina"`
+	Year  int    `json:"year,omitempty" jsonschema:"title=year,description=The year of the movie,required=false,example=2014"`
 }
 
 type MovieCatalog struct {
@@ -53,7 +53,7 @@ func main() {
 					MultiContent: []instructor.ChatMessagePart{
 						{
 							Type: instructor.ChatMessagePartTypeText,
-							Text: "Using the instructor package, extract the movie catalog from the image and return only the JSON output.",
+							Text: "Extract the movie catalog from the screenshot",
 						},
 						{
 							Type: instructor.ChatMessagePartTypeImageURL,
@@ -66,7 +66,6 @@ func main() {
 			},
 		},
 	)
-
 	if err != nil {
 		panic(err)
 	}
@@ -74,6 +73,7 @@ func main() {
 	movieCatalog.PrintCatalog()
 	/*
 		Number of movies in the catalog: 18
+
 		Title:  Oppenheimer
 		Year:   2023
 		--------------------

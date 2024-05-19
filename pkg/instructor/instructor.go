@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"strings"
 
 	anthropic "github.com/liushuangls/go-anthropic/v2"
 	openai "github.com/sashabaranov/go-openai"
@@ -81,8 +82,6 @@ func (i *Instructor[T]) CreateChatCompletion(ctx context.Context, request Reques
 		text, err := i.Client.CreateChatCompletion(ctx, request)
 		if err != nil {
 			// no retry on non-marshalling/validation errors
-			println(text)
-			println(err.Error())
 			return nil, err
 		}
 
@@ -93,8 +92,6 @@ func (i *Instructor[T]) CreateChatCompletion(ctx context.Context, request Reques
 			//
 			// Currently, its just recalling with no new information
 			// or attempt to fix the error with the last generated JSON
-			println(text)
-			println(err.Error())
 			continue
 		}
 
@@ -106,6 +103,8 @@ func (i *Instructor[T]) CreateChatCompletion(ctx context.Context, request Reques
 
 func (i *Instructor[T]) processResponse(response string) (*T, error) {
 
+	response = trimJSON(response)
+
 	t := new(T)
 
 	err := json.Unmarshal([]byte(response), t)
@@ -116,4 +115,28 @@ func (i *Instructor[T]) processResponse(response string) (*T, error) {
 	// TODO: if direct unmarshal fails: check common erors like wrapping struct with key name of struct, instead of just the value
 
 	return t, nil
+}
+
+// Removes any prefixes before the JSON (like "Sure, here you go:")
+func trimPrefix(jsonStr string) string {
+	start := strings.IndexByte(jsonStr, '{')
+	if start == -1 {
+		return jsonStr // No opening brace found, return the original string
+	}
+	return jsonStr[start:]
+}
+
+// Removes any postfixes after the JSON
+func trimPostfix(jsonStr string) string {
+	end := strings.LastIndexByte(jsonStr, '}')
+	if end == -1 {
+		return jsonStr
+	}
+	return jsonStr[:end+1]
+}
+
+func trimJSON(jsonStr string) string {
+	trimmedPrefix := trimPrefix(jsonStr)
+	trimmedJSON := trimPostfix(trimmedPrefix)
+	return trimmedJSON
 }
