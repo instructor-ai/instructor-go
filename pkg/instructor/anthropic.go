@@ -99,7 +99,7 @@ Please responsd with json in the following json_schema:
 
 %s
 
-Make sure to return an instance of the JSON, not the schema itself
+Make sure to return an instance of the JSON, not the schema itself.
 `, a.schema.String)
 
 	messages, err := toAnthropicMessages(&request)
@@ -131,7 +131,37 @@ func toAnthropicMessages(request *Request) (*[]anthropic.Message, error) {
 	for i, msg := range request.Messages {
 		switch msg.Role {
 		case RoleUser:
-			messages[i] = anthropic.NewUserTextMessage(msg.Content)
+			if msg.Content != "" {
+				messages[i] = anthropic.NewUserTextMessage(msg.Content)
+			} else if msg.MultiContent != nil {
+				content := make([]anthropic.MessageContent, len(msg.MultiContent))
+				for j, m := range msg.MultiContent {
+					switch m.Type {
+					case ChatMessagePartTypeText:
+						content[j] = anthropic.NewTextMessageContent(m.Text)
+					case ChatMessagePartTypeImageURL:
+						mediaType, err := fetchMediaType(m.ImageURL.URL)
+						if err != nil {
+							return nil, err
+						}
+						data, err := urlToBase64(m.ImageURL.URL)
+						if err != nil {
+							return nil, err
+						}
+						content[j] = anthropic.NewImageMessageContent(
+							anthropic.MessageContentImageSource{
+								Type:      "base64",
+								MediaType: mediaType,
+								Data:      data,
+							},
+						)
+					}
+				}
+				messages[i] = anthropic.Message{
+					Role:    RoleUser,
+					Content: content,
+				}
+			}
 		case RoleAssistant:
 			messages[i] = anthropic.NewAssistantTextMessage(msg.Content)
 		default:
