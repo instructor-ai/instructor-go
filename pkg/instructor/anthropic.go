@@ -100,7 +100,6 @@ Please responsd with json in the following json_schema:
 %s
 
 Make sure to return an instance of the JSON, not the schema itself.
-Only return valid JSON.
 `, a.schema.String)
 
 	messages, err := toAnthropicMessages(&request)
