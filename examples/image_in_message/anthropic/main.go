@@ -10,7 +10,7 @@ import (
 )
 
 type Movie struct {
-	Title string `json:"title,omitempty"  jsonschema:"title=title,description=The title of the movie,example=Harry Potter and the Philosopher's Stone"`
+	Title string `json:"title"  jsonschema:"title=title,description=The title of the movie,example=Harry Potter and the Philosopher's Stone"`
 	Year  int    `json:"year,omitempty"   jsonschema:"title=year,description=The year of the movie,example=2001"`
 }
 
@@ -49,19 +49,11 @@ func main() {
 			Model: "claude-3-haiku-20240307",
 			Messages: []instructor.Message{
 				{
-					Role:    instructor.RoleUser,
-					Content: "Hello, I am a human",
-				},
-				{
-					Role:    instructor.RoleAssistant,
-					Content: "Hello, I am a machine",
-				},
-				{
 					Role: instructor.RoleUser,
 					MultiContent: []instructor.ChatMessagePart{
 						{
 							Type: instructor.ChatMessagePartTypeText,
-							Text: "Extract movie catalog from the image",
+							Text: "Using the instructor package, extract the movie catalog from the image and return only the JSON output.",
 						},
 						{
 							Type: instructor.ChatMessagePartTypeImageURL,
