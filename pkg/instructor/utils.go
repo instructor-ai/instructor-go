@@ -44,3 +44,17 @@ func urlToBase64(url string) (string, error) {
 
 	return base64.StdEncoding.EncodeToString(data), nil
 }
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}

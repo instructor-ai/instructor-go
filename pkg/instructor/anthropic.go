@@ -9,46 +9,38 @@ import (
 	anthropic "github.com/liushuangls/go-anthropic/v2"
 )
 
-type AnthropicClient[T any] struct {
+type AnthropicClient struct {
 	Name string
 
 	client *anthropic.Client
-	schema *Schema[T]
-	mode   Mode
 }
 
-var _ Client[any] = &AnthropicClient[any]{}
+var _ Client = &AnthropicClient{}
 
-func NewAnthropicClient[T any](client *anthropic.Client, schema *Schema[T], mode Mode) (*AnthropicClient[T], error) {
-	o := &AnthropicClient[T]{
+func NewAnthropicClient(client *anthropic.Client) (*AnthropicClient, error) {
+	o := &AnthropicClient{
 		Name:   "Anthropic",
 		client: client,
-		schema: schema,
-		mode:   mode,
 	}
 	return o, nil
 }
 
-func (a *AnthropicClient[T]) CreateChatCompletion(ctx context.Context, request Request) (string, error) {
-	return a.completionModeHandler(ctx, request)
-}
-
-func (a *AnthropicClient[any]) completionModeHandler(ctx context.Context, request Request) (string, error) {
-	switch a.mode {
+func (a *AnthropicClient) CreateChatCompletion(ctx context.Context, request Request, mode Mode, schema *Schema) (string, error) {
+	switch mode {
 	case ModeToolCall:
-		return a.completionToolCall(ctx, request)
+		return a.completionToolCall(ctx, request, schema)
 	case ModeJSONSchema:
-		return a.completionJSONSchema(ctx, request)
+		return a.completionJSONSchema(ctx, request, schema)
 	default:
-		return "", fmt.Errorf("mode '%s' is not supported for %s", a.mode, a.Name)
+		return "", fmt.Errorf("mode '%s' is not supported for %s", mode, a.Name)
 	}
 }
 
-func (a *AnthropicClient[any]) completionToolCall(ctx context.Context, request Request) (string, error) {
+func (a *AnthropicClient) completionToolCall(ctx context.Context, request Request, schema *Schema) (string, error) {
 
 	tools := []anthropic.ToolDefinition{}
 
-	for _, function := range a.schema.Functions {
+	for _, function := range schema.Functions {
 		t := anthropic.ToolDefinition{
 			Name:        function.Name,
 			Description: function.Description,
@@ -92,7 +84,7 @@ func (a *AnthropicClient[any]) completionToolCall(ctx context.Context, request R
 
 }
 
-func (a *AnthropicClient[any]) completionJSONSchema(ctx context.Context, request Request) (string, error) {
+func (a *AnthropicClient) completionJSONSchema(ctx context.Context, request Request, schema *Schema) (string, error) {
 
 	system := fmt.Sprintf(`
 Please responsd with json in the following json_schema:
@@ -100,7 +92,7 @@ Please responsd with json in the following json_schema:
 %s
 
 Make sure to return an instance of the JSON, not the schema itself.
-`, a.schema.String)
+`, schema.String)
 
 	messages, err := toAnthropicMessages(&request)
 	if err != nil {

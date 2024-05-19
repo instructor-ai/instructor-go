@@ -29,9 +29,13 @@ func (s *Search) execute() {
 
 type Searches = []Search
 
+// type Searches struct {
+// 	Items []Search `json:"searches" jsonschema:"title=Searches,description=A list of search results"`
+// }
+
 func segment(ctx context.Context, data string) *Searches {
 
-	client, err := instructor.FromOpenAI[Searches](
+	client, err := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeToolCall),
 		instructor.WithMaxRetries(3),
@@ -40,10 +44,11 @@ func segment(ctx context.Context, data string) *Searches {
 		panic(err)
 	}
 
-	searches, err := client.CreateChatCompletion(
+	var searches Searches
+	err = client.CreateChatCompletion(
 		ctx,
 		instructor.Request{
-			Model: openai.GPT4Turbo20240409,
+			Model: openai.GPT4o,
 			Messages: []instructor.Message{
 				{
 					Role:    instructor.RoleUser,
@@ -51,12 +56,13 @@ func segment(ctx context.Context, data string) *Searches {
 				},
 			},
 		},
+		&searches,
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	return searches
+	return &searches
 }
 
 func main() {

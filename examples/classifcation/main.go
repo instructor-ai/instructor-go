@@ -28,16 +28,17 @@ type Prediction struct {
 func classify(data string) *Prediction {
 	ctx := context.Background()
 
-	client, err := instructor.FromAnthropic[Prediction](
+	client, err := instructor.FromAnthropic(
 		anthropic.NewClient(os.Getenv("ANTHROPIC_API_KEY")),
 		instructor.WithMode(instructor.ModeToolCall),
-		instructor.WithMaxRetries(1),
+		instructor.WithMaxRetries(3),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	prediction, err := client.CreateChatCompletion(
+	var prediction Prediction
+	err = client.CreateChatCompletion(
 		ctx,
 		instructor.Request{
 			Model: anthropic.ModelClaude3Haiku20240307,
@@ -48,12 +49,13 @@ func classify(data string) *Prediction {
 				},
 			},
 		},
+		&prediction,
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	return prediction
+	return &prediction
 }
 
 func main() {
@@ -62,8 +64,13 @@ func main() {
 	prediction := classify(ticket)
 
 	assert(prediction.contains(LabelTechIssue), "Expected ticket to be related to tech issue")
-	assert(prediction.contains(LabelTechIssue), "Expected ticket to be related to billing")
+	assert(prediction.contains(LabelBilling), "Expected ticket to be related to billing")
+	assert(!prediction.contains(LabelGeneralQuery), "Expected ticket NOT to be a general query")
 
+	fmt.Printf("%+v\n", prediction)
+	/*
+		&{Labels:[{Type:tech_issue} {Type:billing}]}
+	*/
 }
 
 /******/

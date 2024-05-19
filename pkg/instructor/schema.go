@@ -7,7 +7,7 @@ import (
 	"github.com/invopop/jsonschema"
 )
 
-type Schema[T any] struct {
+type Schema struct {
 	*jsonschema.Schema
 	String string
 
@@ -25,22 +25,18 @@ type FunctionDefinition struct {
 	Parameters  *jsonschema.Schema `json:"parameters"`
 }
 
-func NewSchema[T any]() (*Schema[T], error) {
+func NewSchema(t reflect.Type) (*Schema, error) {
 
-	t := new(T)
-
-	tType := reflect.TypeOf(t)
-
-	schema := jsonschema.ReflectFromType(tType)
+	schema := jsonschema.ReflectFromType(t)
 
 	str, err := json.MarshalIndent(schema, "", "  ")
 	if err != nil {
 		return nil, err
 	}
 
-	funcs := ToFunctionSchema(tType, schema)
+	funcs := ToFunctionSchema(t, schema)
 
-	s := &Schema[T]{
+	s := &Schema{
 		Schema: schema,
 		String: string(str),
 

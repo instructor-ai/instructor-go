@@ -17,7 +17,7 @@ type Person struct {
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromOpenAI[Person](
+	client, err := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
 		instructor.WithMaxRetries(3),
@@ -26,7 +26,8 @@ func main() {
 		panic(err)
 	}
 
-	person, err := client.CreateChatCompletion(
+	var person Person
+	err = client.CreateChatCompletion(
 		ctx,
 		instructor.Request{
 			Model: openai.GPT4Turbo20240409,
@@ -37,6 +38,7 @@ func main() {
 				},
 			},
 		},
+		&person,
 	)
 	if err != nil {
 		panic(err)
