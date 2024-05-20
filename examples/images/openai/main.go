@@ -30,7 +30,7 @@ func (bc *BookCatalog) PrintCatalog() {
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromOpenAI[BookCatalog](
+	client, err := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
 		instructor.WithMaxRetries(3),
@@ -41,7 +41,8 @@ func main() {
 
 	url := "https://utfs.io/f/fe55d6bd-e920-4a6f-8e93-a4c9dd851b90-eivhb2.png"
 
-	bookCatalog, err := client.CreateChatCompletion(
+	var bookCatalog BookCatalog
+	err = client.CreateChatCompletion(
 		ctx,
 		instructor.Request{
 			Model: openai.GPT4o,
@@ -63,6 +64,7 @@ func main() {
 				},
 			},
 		},
+		&bookCatalog,
 	)
 
 	if err != nil {

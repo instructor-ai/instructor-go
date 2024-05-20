@@ -32,7 +32,7 @@ func (bc *MovieCatalog) PrintCatalog() {
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromAnthropic[MovieCatalog](
+	client, err := instructor.FromAnthropic(
 		anthropic.NewClient(os.Getenv("ANTHROPIC_API_KEY")),
 		instructor.WithMode(instructor.ModeJSONSchema),
 		instructor.WithMaxRetries(3),
@@ -43,7 +43,8 @@ func main() {
 
 	url := "https://utfs.io/f/bd0dbae6-27e3-4604-b640-fd2ffea891b8-fxyywt.jpeg"
 
-	movieCatalog, err := client.CreateChatCompletion(
+	var movieCatalog MovieCatalog
+	err = client.CreateChatCompletion(
 		ctx,
 		instructor.Request{
 			Model: "claude-3-haiku-20240307",
@@ -65,6 +66,7 @@ func main() {
 				},
 			},
 		},
+		&movieCatalog,
 	)
 	if err != nil {
 		panic(err)

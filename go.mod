@@ -4,7 +4,7 @@ go 1.21.8
 
 require (
 	github.com/invopop/jsonschema v0.12.0
-	github.com/liushuangls/go-anthropic/v2 v2.0.3
+	github.com/liushuangls/go-anthropic/v2 v2.1.0
 	github.com/sashabaranov/go-openai v1.24.0
 )
 
