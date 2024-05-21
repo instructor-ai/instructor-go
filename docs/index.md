@@ -8,7 +8,7 @@ _Structured large language model (LLM) extraction in Go, designed for simplicity
 [![LinkedIn Follow](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/robby-horvath/)
 [![Documentation](https://img.shields.io/badge/docs-available-brightgreen)](https://go.useinstructor.com)
 [![GitHub issues](https://img.shields.io/github/issues/instructor-ai/instructor-go.svg)](https://github.com/instructor-ai/instructor-go/issues)
-[![Discord](https://img.shields.io/discord/1192334452110659664?label=discord)](https://discord.gg/CV8sPM5k5Y)
+[![Discord](https://img.shields.io/discord/1192334452110659664?label=discord)](https://discord.gg/UD9GPjbs8c)
 
 Check us out in [Python](https://python.useinstructor.com/), [JS/TS](https://js.useinstructor.com/), [Elixir](https://github.com/thmsmlr/instructor_ex/) and [PHP](https://github.com/cognesy/instructor-php/).
 
