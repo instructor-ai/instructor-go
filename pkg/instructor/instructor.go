@@ -1,12 +1,11 @@
 package instructor
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"reflect"
+	"strings"
 
 	anthropic "github.com/liushuangls/go-anthropic/v2"
 	openai "github.com/sashabaranov/go-openai"
@@ -91,71 +90,84 @@ func (i *Instructor) CreateChatCompletion(ctx context.Context, request Request, 
 	return errors.New("hit max retry attempts")
 }
 
-func CreateChatCompletionStream[T any](i *Instructor, ctx context.Context, request Request, ch chan T) error {
+func (i *Instructor) CreateChatCompletionStream(ctx context.Context, request Request, responseSlice, responseElem any) (chan any, error) {
+
+	// used to signal to model to send a stream of the elements of that type
+	sliceType := reflect.TypeOf(responseSlice)
+	// used to create the channel to parse elements of this type and send them
+	elemType := reflect.TypeOf(responseElem)
+
+	schema, err := NewSchema(sliceType)
+	if err != nil {
+		return nil, err
+	}
+
+	request.Stream = true
+
+	ch, err := i.Client.CreateChatCompletionStream(ctx, request, i.Mode, schema)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedChan := make(chan any) // Buffered channel for parsed objects
+
 	go func() {
-		defer close(ch)
-
-		t := reflect.TypeOf(new(T)).Elem()
-
-		schema, err := NewSchema(t)
-		if err != nil {
-			ch <- *new(T) // send a zero value of type T to signal error
-			return
-		}
-
-		request.Stream = true
-
-		streamCh, err := i.Client.CreateChatCompletionStream(ctx, request, i.Mode, schema)
-		if err != nil {
-			ch <- *new(T) // send a zero value of type T to signal error
-			return
-		}
-
-		var buffer bytes.Buffer
+		defer close(parsedChan)
+		var buffer strings.Builder
+		inArray := false
 
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			default:
-				text, ok := <-streamCh
+			case text, ok := <-ch:
 				if !ok {
 					return
 				}
-
-				println(text)
-				text = extractJSON(text)
-
 				buffer.WriteString(text)
 
-				for {
-					var chunk T
-					err = json.Unmarshal(buffer.Bytes(), &chunk)
-					if err == nil {
-						ch <- chunk
-						buffer.Reset()
-						break
+				// eat all input until elements stream starts
+				if !inArray {
+					idx := strings.Index(buffer.String(), `[`)
+					if idx == -1 {
+						continue
 					}
 
-					if err != io.EOF {
-						break
+					inArray = true
+					bufferStr := buffer.String()
+					trimmed := strings.TrimSpace(bufferStr[idx+1:])
+					buffer.Reset()
+					buffer.WriteString(trimmed)
+				}
+
+				data := buffer.String()
+				decoder := json.NewDecoder(strings.NewReader(data))
+
+				for decoder.More() {
+					instance := reflect.New(elemType).Interface()
+					err := decoder.Decode(instance)
+					if err != nil {
+						break // Stop on error
 					}
+					parsedChan <- instance
+
+					buffer.Reset()
+					buffer.WriteString(data[len(data):])
 				}
 			}
 		}
 	}()
 
-	return nil
+	return parsedChan, nil
 }
 
 func processResponse(responseStr string, response *any) error {
-
 	err := json.Unmarshal([]byte(responseStr), response)
 	if err != nil {
 		return err
 	}
 
-	// TODO: if direct unmarshal fails: check common erors like wrapping struct with key name of struct, instead of just the value
+	// TODO: if direct unmarshal fails: check common errors like wrapping struct with key name of struct, instead of just the value
 
 	return nil
 }

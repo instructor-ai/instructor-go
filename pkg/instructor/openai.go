@@ -123,6 +123,20 @@ func (o *OpenAIClient) completionJSONSchema(ctx context.Context, request Request
 	return text, nil
 }
 
+func createJSONMessage(schema *Schema) *Message {
+	message := fmt.Sprintf(`
+Please respond with JSON in the following JSON schema:
+
+%s
+
+Make sure to return an instance of the JSON, not the schema itself
+`, schema.String)
+	return &Message{
+		Role:    RoleSystem,
+		Content: message,
+	}
+}
+
 func (o *OpenAIClient) CreateChatCompletionStream(ctx context.Context, request Request, mode Mode, schema *Schema) (<-chan string, error) {
 	switch mode {
 	case ModeToolCall:
@@ -142,14 +156,14 @@ func (o *OpenAIClient) completionToolCallStream(ctx context.Context, request Req
 }
 
 func (o *OpenAIClient) completionJSONStream(ctx context.Context, request Request, schema *Schema) (<-chan string, error) {
-	request.Messages = prepend(request.Messages, *createJSONMessage(schema))
+	request.Messages = prepend(request.Messages, *createJSONMessageStream(schema))
 	// Set JSON mode
 	request.ResponseFormat = &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject}
 	return o.createStream(ctx, request)
 }
 
 func (o *OpenAIClient) completionJSONSchemaStream(ctx context.Context, request Request, schema *Schema) (<-chan string, error) {
-	request.Messages = prepend(request.Messages, *createJSONMessage(schema))
+	request.Messages = prepend(request.Messages, *createJSONMessageStream(schema))
 	return o.createStream(ctx, request)
 }
 
@@ -170,13 +184,13 @@ func createTools(schema *Schema) []openai.Tool {
 	return tools
 }
 
-func createJSONMessage(schema *Schema) *Message {
+func createJSONMessageStream(schema *Schema) *Message {
 	message := fmt.Sprintf(`
-Please respond with JSON in the following JSON schema:
+Please respond with a JSON array where the elements following JSON schema:
 
 %s
 
-Make sure to return an instance of the JSON, not the schema itself
+Make sure to return an array with the elements an instance of the JSON, not the schema itself.
 `, schema.String)
 	return &Message{
 		Role:    RoleSystem,
@@ -198,11 +212,9 @@ func (o *OpenAIClient) createStream(ctx context.Context, request Request) (<-cha
 		for {
 			response, err := stream.Recv()
 			if errors.Is(err, io.EOF) {
-                println("closing channel")
 				return
 			}
 			if err != nil {
-                println("channel errored")
 				return
 			}
 			text := response.Choices[0].Delta.Content
