@@ -29,10 +29,6 @@ func (s *Search) execute() {
 
 type Searches = []Search
 
-// type Searches struct {
-// 	Items []Search `json:"searches" jsonschema:"title=Searches,description=A list of search results"`
-// }
-
 func segment(ctx context.Context, data string) *Searches {
 
 	client, err := instructor.FromOpenAI(

@@ -1,11 +1,12 @@
 package instructor
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"reflect"
-	"strings"
 
 	anthropic "github.com/liushuangls/go-anthropic/v2"
 	openai "github.com/sashabaranov/go-openai"
@@ -90,6 +91,63 @@ func (i *Instructor) CreateChatCompletion(ctx context.Context, request Request, 
 	return errors.New("hit max retry attempts")
 }
 
+func CreateChatCompletionStream[T any](i *Instructor, ctx context.Context, request Request, ch chan T) error {
+	go func() {
+		defer close(ch)
+
+		t := reflect.TypeOf(new(T)).Elem()
+
+		schema, err := NewSchema(t)
+		if err != nil {
+			ch <- *new(T) // send a zero value of type T to signal error
+			return
+		}
+
+		request.Stream = true
+
+		streamCh, err := i.Client.CreateChatCompletionStream(ctx, request, i.Mode, schema)
+		if err != nil {
+			ch <- *new(T) // send a zero value of type T to signal error
+			return
+		}
+
+		var buffer bytes.Buffer
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				text, ok := <-streamCh
+				if !ok {
+					return
+				}
+
+				println(text)
+				text = extractJSON(text)
+
+				buffer.WriteString(text)
+
+				for {
+					var chunk T
+					err = json.Unmarshal(buffer.Bytes(), &chunk)
+					if err == nil {
+						ch <- chunk
+						buffer.Reset()
+						break
+					}
+
+					if err != io.EOF {
+						break
+					}
+				}
+			}
+		}
+	}()
+
+	return nil
+}
+
 func processResponse(responseStr string, response *any) error {
 
 	err := json.Unmarshal([]byte(responseStr), response)
@@ -100,49 +158,4 @@ func processResponse(responseStr string, response *any) error {
 	// TODO: if direct unmarshal fails: check common erors like wrapping struct with key name of struct, instead of just the value
 
 	return nil
-}
-
-// Removes any prefixes before the JSON (like "Sure, here you go:")
-func trimPrefix(jsonStr string) string {
-	startObject := strings.IndexByte(jsonStr, '{')
-	startArray := strings.IndexByte(jsonStr, '[')
-
-	var start int
-	if startObject == -1 && startArray == -1 {
-		return jsonStr // No opening brace or bracket found, return the original string
-	} else if startObject == -1 {
-		start = startArray
-	} else if startArray == -1 {
-		start = startObject
-	} else {
-		start = min(startObject, startArray)
-	}
-
-	return jsonStr[start:]
-}
-
-// Removes any postfixes after the JSON
-func trimPostfix(jsonStr string) string {
-	endObject := strings.LastIndexByte(jsonStr, '}')
-	endArray := strings.LastIndexByte(jsonStr, ']')
-
-	var end int
-	if endObject == -1 && endArray == -1 {
-		return jsonStr // No closing brace or bracket found, return the original string
-	} else if endObject == -1 {
-		end = endArray
-	} else if endArray == -1 {
-		end = endObject
-	} else {
-		end = max(endObject, endArray)
-	}
-
-	return jsonStr[:end+1]
-}
-
-// Extracts the JSON by trimming prefixes and postfixes
-func extractJSON(jsonStr string) string {
-	trimmedPrefix := trimPrefix(jsonStr)
-	trimmedJSON := trimPostfix(trimmedPrefix)
-	return trimmedJSON
 }

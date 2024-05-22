@@ -4,15 +4,13 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-type Message = openai.ChatCompletionMessage
-
-type Request = openai.ChatCompletionRequest
-
-type ChatMessagePart = openai.ChatMessagePart
-
-type ChatMessageImageURL = openai.ChatMessageImageURL
-
-type ChatMessagePartType = openai.ChatMessagePartType
+type (
+	Message             = openai.ChatCompletionMessage
+	Request             = openai.ChatCompletionRequest
+	ChatMessagePart     = openai.ChatMessagePart
+	ChatMessageImageURL = openai.ChatMessageImageURL
+	ChatMessagePartType = openai.ChatMessagePartType
+)
 
 const (
 	ChatMessagePartTypeText     ChatMessagePartType = "text"

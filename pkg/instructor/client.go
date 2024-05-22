@@ -12,10 +12,10 @@ type Client interface {
 		schema *Schema,
 	) (string, error)
 
-	// TODO: implement streaming
-	// CreateChatCompletionStream(
-	// 	ctx context.Context,
-	// 	request ChatCompletionRequest,
-	// 	opts ...ClientOptions,
-	// ) (*T, error)
+	CreateChatCompletionStream(
+		ctx context.Context,
+		request Request,
+		mode Mode,
+		schema *Schema,
+	) (<-chan string, error)
 }
