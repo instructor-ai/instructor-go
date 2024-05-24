@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	anthropic "github.com/liushuangls/go-anthropic/v2"
+	openai "github.com/sashabaranov/go-openai"
 )
 
 type AnthropicClient struct {
@@ -162,4 +163,8 @@ func toAnthropicMessages(request *Request) (*[]anthropic.Message, error) {
 	}
 
 	return &messages, nil
+}
+
+func (a *AnthropicClient) CreateChatCompletionStream(ctx context.Context, request openai.ChatCompletionRequest, mode string, schema *Schema) (<-chan string, error) {
+	panic("unimplemented")
 }

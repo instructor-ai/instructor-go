@@ -90,59 +90,116 @@ func (i *Instructor) CreateChatCompletion(ctx context.Context, request Request, 
 	return errors.New("hit max retry attempts")
 }
 
-func processResponse(responseStr string, response *any) error {
+const WRAPPER_END = `"items": [`
 
+type StreamWrapper[T any] struct {
+	Items []T `json:"items"`
+}
+
+func (i *Instructor) CreateChatCompletionStream(ctx context.Context, request Request, response any) (chan any, error) {
+
+	responseType := reflect.TypeOf(response)
+
+	streamWrapperType := reflect.StructOf([]reflect.StructField{
+		{
+			Name:      "Items",
+			Type:      reflect.SliceOf(responseType),
+			Tag:       `json:"items"`,
+			Anonymous: false,
+		},
+	})
+
+	schema, err := NewSchema(streamWrapperType)
+	if err != nil {
+		return nil, err
+	}
+
+	request.Stream = true
+
+	ch, err := i.Client.CreateChatCompletionStream(ctx, request, i.Mode, schema)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedChan := make(chan any) // Buffered channel for parsed objects
+
+	go func() {
+		defer close(parsedChan)
+		var buffer strings.Builder
+		inArray := false
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case text, ok := <-ch:
+				if !ok {
+					// Steeam closed
+
+					// Get last element out of stream wrapper
+
+					data := buffer.String()
+
+					if idx := strings.LastIndex(data, "]"); idx != -1 {
+						data = data[:idx] + data[idx+1:]
+					}
+
+					// Process the remaining data in the buffer
+					decoder := json.NewDecoder(strings.NewReader(data))
+					for decoder.More() {
+						instance := reflect.New(responseType).Interface()
+						err := decoder.Decode(instance)
+						if err != nil {
+							break
+						}
+						parsedChan <- instance
+					}
+					return
+				}
+				buffer.WriteString(text)
+
+				// eat all input until elements stream starts
+				if !inArray {
+					idx := strings.Index(buffer.String(), WRAPPER_END)
+					if idx == -1 {
+						continue
+					}
+
+					inArray = true
+					bufferStr := buffer.String()
+					trimmed := strings.TrimSpace(bufferStr[idx+len(WRAPPER_END):])
+					buffer.Reset()
+					buffer.WriteString(trimmed)
+				}
+
+				data := buffer.String()
+				decoder := json.NewDecoder(strings.NewReader(data))
+
+				for decoder.More() {
+					instance := reflect.New(responseType).Interface()
+					err := decoder.Decode(instance)
+					if err != nil {
+						break
+					}
+					parsedChan <- instance
+
+					buffer.Reset()
+					buffer.WriteString(data[len(data):])
+				}
+			}
+		}
+	}()
+
+	return parsedChan, nil
+}
+
+func processResponse(responseStr string, response *any) error {
 	err := json.Unmarshal([]byte(responseStr), response)
 	if err != nil {
 		return err
 	}
 
-	// TODO: if direct unmarshal fails: check common erors like wrapping struct with key name of struct, instead of just the value
+	// TODO: if direct unmarshal fails: check common errors like wrapping struct with key name of struct, instead of just the value
 
 	return nil
-}
-
-// Removes any prefixes before the JSON (like "Sure, here you go:")
-func trimPrefix(jsonStr string) string {
-	startObject := strings.IndexByte(jsonStr, '{')
-	startArray := strings.IndexByte(jsonStr, '[')
-
-	var start int
-	if startObject == -1 && startArray == -1 {
-		return jsonStr // No opening brace or bracket found, return the original string
-	} else if startObject == -1 {
-		start = startArray
-	} else if startArray == -1 {
-		start = startObject
-	} else {
-		start = min(startObject, startArray)
-	}
-
-	return jsonStr[start:]
-}
-
-// Removes any postfixes after the JSON
-func trimPostfix(jsonStr string) string {
-	endObject := strings.LastIndexByte(jsonStr, '}')
-	endArray := strings.LastIndexByte(jsonStr, ']')
-
-	var end int
-	if endObject == -1 && endArray == -1 {
-		return jsonStr // No closing brace or bracket found, return the original string
-	} else if endObject == -1 {
-		end = endArray
-	} else if endArray == -1 {
-		end = endObject
-	} else {
-		end = max(endObject, endArray)
-	}
-
-	return jsonStr[:end+1]
-}
-
-// Extracts the JSON by trimming prefixes and postfixes
-func extractJSON(jsonStr string) string {
-	trimmedPrefix := trimPrefix(jsonStr)
-	trimmedJSON := trimPostfix(trimmedPrefix)
-	return trimmedJSON
 }
