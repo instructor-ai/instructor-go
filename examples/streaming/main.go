@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/instructor-ai/instructor-go/pkg/instructor"
 	openai "github.com/sashabaranov/go-openai"
@@ -29,8 +28,7 @@ func (r *Recommendation) String() string {
 Recommendation [
     %s
     Reason [%s]
-]
-`, r.Product.String(), r.Reason)
+]`, r.Product.String(), r.Reason)
 }
 
 func main() {
@@ -102,14 +100,33 @@ Product list:
 	}
 
 	for instance := range recommendationChan {
-		recommendation, ok := instance.(*Recommendation)
-		if !ok {
-			// Handle error: the received value is not a *Recommendations
-			println("channel is not of correct type. Actual type: " + reflect.TypeOf(instance).String())
-			continue
-		}
-
+		recommendation, _ := instance.(*Recommendation)
 		println(recommendation.String())
 	}
+	/*
+		Recommendation [
+		    Product [ID: 7, Name: Apple MacBook Air (2023) - Latest model, high performance, portable]
+		    Reason [As you have recently searched for budget laptops of 2023 and previously purchased a laptop, we believe the latest Apple MacBook Air will meet your high-performance requirements. Additionally, Apple is one of your preferred brands.]
+		]
 
+		Recommendation [
+		    Product [ID: 2, Name: Apple Watch Series 7 - Advanced fitness tracking, seamless integration with Apple ecosystem]
+		    Reason [Based on your recent purchase history which includes a smart watch and your preference for Apple products, we recommend the Apple Watch Series 7 for its advanced fitness tracking features.]
+		]
+
+		Recommendation [
+		    Product [ID: 10, Name: Project Hail Mary by Andy Weir - Latest sci-fi book from a renowned author]
+		    Reason [Given your recent search for the latest sci-fi books and frequent browsing in the Books category, 'Project Hail Mary' by Andy Weir may interest you.]
+		]
+
+		Recommendation [
+		    Product [ID: 5, Name: Manduka PRO Yoga Mat - High-quality, durable, eco-friendly]
+		    Reason [Since you recently searched for yoga mats and frequently browse fitness equipment, we recommend the Manduka PRO Yoga Mat to support your fitness activities.]
+		]
+
+		Recommendation [
+		    Product [ID: 4, Name: AllBirds Wool Runners - Comfortable, eco-friendly sneakers]
+		    Reason [Considering your preference for the AllBirds brand and your frequent browsing in fitness categories, the AllBirds Wool Runners would be a great fit for your lifestyle.]
+		]
+	*/
 }
