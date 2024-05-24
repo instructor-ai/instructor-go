@@ -90,14 +90,26 @@ func (i *Instructor) CreateChatCompletion(ctx context.Context, request Request, 
 	return errors.New("hit max retry attempts")
 }
 
-func (i *Instructor) CreateChatCompletionStream(ctx context.Context, request Request, responseSlice, responseElem any) (chan any, error) {
+const WRAPPER_END = `"items": [`
 
-	// used to signal to model to send a stream of the elements of that type
-	sliceType := reflect.TypeOf(responseSlice)
-	// used to create the channel to parse elements of this type and send them
-	elemType := reflect.TypeOf(responseElem)
+type StreamWrapper[T any] struct {
+	Items []T `json:"items"`
+}
 
-	schema, err := NewSchema(sliceType)
+func (i *Instructor) CreateChatCompletionStream(ctx context.Context, request Request, response any) (chan any, error) {
+
+	responseType := reflect.TypeOf(response)
+
+	streamWrapperType := reflect.StructOf([]reflect.StructField{
+		{
+			Name:      "Items",
+			Type:      reflect.SliceOf(responseType),
+			Tag:       `json:"items"`,
+			Anonymous: false,
+		},
+	})
+
+	schema, err := NewSchema(streamWrapperType)
 	if err != nil {
 		return nil, err
 	}
@@ -122,20 +134,40 @@ func (i *Instructor) CreateChatCompletionStream(ctx context.Context, request Req
 				return
 			case text, ok := <-ch:
 				if !ok {
+					// Steeam closed
+
+					// Get last element out of stream wrapper
+
+					data := buffer.String()
+
+					if idx := strings.LastIndex(data, "]"); idx != -1 {
+						data = data[:idx] + data[idx+1:]
+					}
+
+					// Process the remaining data in the buffer
+					decoder := json.NewDecoder(strings.NewReader(data))
+					for decoder.More() {
+						instance := reflect.New(responseType).Interface()
+						err := decoder.Decode(instance)
+						if err != nil {
+							break
+						}
+						parsedChan <- instance
+					}
 					return
 				}
 				buffer.WriteString(text)
 
 				// eat all input until elements stream starts
 				if !inArray {
-					idx := strings.Index(buffer.String(), `[`)
+					idx := strings.Index(buffer.String(), WRAPPER_END)
 					if idx == -1 {
 						continue
 					}
 
 					inArray = true
 					bufferStr := buffer.String()
-					trimmed := strings.TrimSpace(bufferStr[idx+1:])
+					trimmed := strings.TrimSpace(bufferStr[idx+len(WRAPPER_END):])
 					buffer.Reset()
 					buffer.WriteString(trimmed)
 				}
@@ -144,10 +176,10 @@ func (i *Instructor) CreateChatCompletionStream(ctx context.Context, request Req
 				decoder := json.NewDecoder(strings.NewReader(data))
 
 				for decoder.More() {
-					instance := reflect.New(elemType).Interface()
+					instance := reflect.New(responseType).Interface()
 					err := decoder.Decode(instance)
 					if err != nil {
-						break // Stop on error
+						break
 					}
 					parsedChan <- instance
 

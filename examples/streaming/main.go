@@ -16,7 +16,7 @@ type Product struct {
 }
 
 func (p *Product) String() string {
-	return fmt.Sprintf("product=[id=%s,name=%s]", p.ID, p.Name)
+	return fmt.Sprintf("Product [ID: %s, Name: %s]", p.ID, p.Name)
 }
 
 type Recommendation struct {
@@ -25,11 +25,12 @@ type Recommendation struct {
 }
 
 func (r *Recommendation) String() string {
-	return fmt.Sprintf("recommendation=[%s, reason=%s]", r.Product.String(), r.Reason)
-}
-
-type Recommendations struct {
-	Items []Recommendation `json:"items" jsonschema:"title=Product Recommendations,description=List of product recommendations"`
+	return fmt.Sprintf(`
+Recommendation [
+    %s
+    Reason [%s]
+]
+`, r.Product.String(), r.Reason)
 }
 
 func main() {
@@ -82,7 +83,7 @@ Preferred Shopping Times: Weekend Evenings
 			Messages: []instructor.Message{
 				{
 					Role: instructor.RoleSystem,
-					Content: fmt.Sprintf(`Generate the top 3 product recommendations from the product list based on the customer profile.
+					Content: fmt.Sprintf(`Generate the product recommendations from the product list based on the customer profile.
 Return in order of highest recommended first.
 Product list:
 %s`, productList),
@@ -94,7 +95,6 @@ Product list:
 			},
 			Stream: true,
 		},
-		new(Recommendations),
 		*new(Recommendation),
 	)
 	if err != nil {
@@ -112,15 +112,4 @@ Product list:
 		println(recommendation.String())
 	}
 
-	// for instance := range recommendationsChan {
-	// 	recommendations, ok := instance.(*Recommendations)
-	// 	if !ok {
-	// 		// Handle error: the received value is not a *Recommendations
-	// 		continue
-	// 	}
-	//
-	// 	for _, recommendation := range recommendations.Items {
-	// 		println(recommendation.String())
-	// 	}
-	// }
 }
