@@ -39,7 +39,7 @@ func main() {
 		panic(err)
 	}
 
-	url := "https://utfs.io/f/fe55d6bd-e920-4a6f-8e93-a4c9dd851b90-eivhb2.png"
+	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png"
 
 	var bookCatalog BookCatalog
 	err = client.CreateChatCompletion(
