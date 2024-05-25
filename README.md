@@ -295,6 +295,8 @@ func assert(condition bool, message string) {
 <details>
 <summary>Images with OpenAI</summary>
 
+![List of movies](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png)
+
 <details>
 <summary>Running</summary>
 
@@ -347,7 +349,7 @@ func main() {
 		panic(err)
 	}
 
-	url := "https://utfs.io/f/fe55d6bd-e920-4a6f-8e93-a4c9dd851b90-eivhb2.png"
+	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png"
 
 	var bookCatalog BookCatalog
 	err = client.CreateChatCompletion(
@@ -437,6 +439,8 @@ func main() {
 <details>
 <summary>Images with Anthropic</summary>
 
+![List of books](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.png)
+
 <details>
 <summary>Running</summary>
 
@@ -491,7 +495,7 @@ func main() {
 		panic(err)
 	}
 
-	url := "https://utfs.io/f/bd0dbae6-27e3-4604-b640-fd2ffea891b8-fxyywt.jpeg"
+	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.png"
 
 	var movieCatalog MovieCatalog
 	err = client.CreateChatCompletion(

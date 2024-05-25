@@ -41,7 +41,7 @@ func main() {
 		panic(err)
 	}
 
-	url := "https://utfs.io/f/bd0dbae6-27e3-4604-b640-fd2ffea891b8-fxyywt.jpeg"
+	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.png"
 
 	var movieCatalog MovieCatalog
 	err = client.CreateChatCompletion(
