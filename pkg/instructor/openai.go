@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 
 	openai "github.com/sashabaranov/go-openai"
 )
 
 type OpenAIClient struct {
-	Name string
+	Name Provider
 
 	*openai.Client
 }
@@ -26,28 +25,34 @@ func NewOpenAIClient(client *openai.Client) (*OpenAIClient, error) {
 	return o, nil
 }
 
-func (o *OpenAIClient) CreateChatCompletion(ctx context.Context, request Request, mode Mode, schema *Schema) (string, error) {
-	if request.Stream {
+func (o *OpenAIClient) Chat(ctx context.Context, request interface{}, mode Mode, schema *Schema) (string, error) {
+
+	req, ok := request.(openai.ChatCompletionRequest)
+	if !ok {
+		return "", fmt.Errorf("invalid request type for %s client", o.Name)
+	}
+
+	if req.Stream {
 		return "", errors.New("streaming is not supported by this method; use CreateChatCompletionStream instead")
 	}
 
 	switch mode {
 	case ModeToolCall:
-		return o.completionToolCall(ctx, request, schema)
+		return o.completionToolCall(ctx, &req, schema)
 	case ModeJSON:
-		return o.completionJSON(ctx, request, schema)
+		return o.completionJSON(ctx, &req, schema)
 	case ModeJSONSchema:
-		return o.completionJSONSchema(ctx, request, schema)
+		return o.completionJSONSchema(ctx, &req, schema)
 	default:
 		return "", fmt.Errorf("mode '%s' is not supported for %s", mode, o.Name)
 	}
 }
 
-func (o *OpenAIClient) completionToolCall(ctx context.Context, request Request, schema *Schema) (string, error) {
+func (o *OpenAIClient) completionToolCall(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (string, error) {
 
 	request.Tools = createTools(schema)
 
-	resp, err := o.Client.CreateChatCompletion(ctx, request)
+	resp, err := o.Client.CreateChatCompletion(ctx, *request)
 	if err != nil {
 		return "", err
 	}
@@ -92,14 +97,14 @@ func (o *OpenAIClient) completionToolCall(ctx context.Context, request Request, 
 	return string(resultJSON), nil
 }
 
-func (o *OpenAIClient) completionJSON(ctx context.Context, request Request, schema *Schema) (string, error) {
+func (o *OpenAIClient) completionJSON(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (string, error) {
 
 	request.Messages = prepend(request.Messages, *createJSONMessage(schema))
 
 	// Set JSON mode
 	request.ResponseFormat = &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject}
 
-	resp, err := o.Client.CreateChatCompletion(ctx, request)
+	resp, err := o.Client.CreateChatCompletion(ctx, *request)
 	if err != nil {
 		return "", err
 	}
@@ -109,11 +114,11 @@ func (o *OpenAIClient) completionJSON(ctx context.Context, request Request, sche
 	return text, nil
 }
 
-func (o *OpenAIClient) completionJSONSchema(ctx context.Context, request Request, schema *Schema) (string, error) {
+func (o *OpenAIClient) completionJSONSchema(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (string, error) {
 
 	request.Messages = prepend(request.Messages, *createJSONMessage(schema))
 
-	resp, err := o.Client.CreateChatCompletion(ctx, request)
+	resp, err := o.Client.CreateChatCompletion(ctx, *request)
 	if err != nil {
 		return "", err
 	}
@@ -135,91 +140,4 @@ Make sure to return an instance of the JSON, not the schema itself
 		Role:    RoleSystem,
 		Content: message,
 	}
-}
-
-func (o *OpenAIClient) CreateChatCompletionStream(ctx context.Context, request Request, mode Mode, schema *Schema) (<-chan string, error) {
-	switch mode {
-	case ModeToolCall:
-		return o.completionToolCallStream(ctx, request, schema)
-	case ModeJSON:
-		return o.completionJSONStream(ctx, request, schema)
-	case ModeJSONSchema:
-		return o.completionJSONSchemaStream(ctx, request, schema)
-	default:
-		return nil, fmt.Errorf("mode '%s' is not supported for %s", mode, o.Name)
-	}
-}
-
-func (o *OpenAIClient) completionToolCallStream(ctx context.Context, request Request, schema *Schema) (<-chan string, error) {
-	request.Tools = createTools(schema)
-	return o.createStream(ctx, request)
-}
-
-func (o *OpenAIClient) completionJSONStream(ctx context.Context, request Request, schema *Schema) (<-chan string, error) {
-	request.Messages = prepend(request.Messages, *createJSONMessageStream(schema))
-	// Set JSON mode
-	request.ResponseFormat = &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject}
-	return o.createStream(ctx, request)
-}
-
-func (o *OpenAIClient) completionJSONSchemaStream(ctx context.Context, request Request, schema *Schema) (<-chan string, error) {
-	request.Messages = prepend(request.Messages, *createJSONMessageStream(schema))
-	return o.createStream(ctx, request)
-}
-
-func createTools(schema *Schema) []openai.Tool {
-	tools := make([]openai.Tool, 0, len(schema.Functions))
-	for _, function := range schema.Functions {
-		f := openai.FunctionDefinition{
-			Name:        function.Name,
-			Description: function.Description,
-			Parameters:  function.Parameters,
-		}
-		t := openai.Tool{
-			Type:     "function",
-			Function: &f,
-		}
-		tools = append(tools, t)
-	}
-	return tools
-}
-
-func createJSONMessageStream(schema *Schema) *Message {
-	message := fmt.Sprintf(`
-Please respond with a JSON array where the elements following JSON schema:
-
-%s
-
-Make sure to return an array with the elements an instance of the JSON, not the schema itself.
-`, schema.String)
-	return &Message{
-		Role:    RoleSystem,
-		Content: message,
-	}
-}
-
-func (o *OpenAIClient) createStream(ctx context.Context, request Request) (<-chan string, error) {
-	stream, err := o.Client.CreateChatCompletionStream(ctx, request)
-	if err != nil {
-		return nil, err
-	}
-
-	ch := make(chan string)
-
-	go func() {
-		defer stream.Close()
-		defer close(ch)
-		for {
-			response, err := stream.Recv()
-			if errors.Is(err, io.EOF) {
-				return
-			}
-			if err != nil {
-				return
-			}
-			text := response.Choices[0].Delta.Content
-			ch <- text
-		}
-	}()
-	return ch, nil
 }

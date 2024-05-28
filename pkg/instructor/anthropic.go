@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	anthropic "github.com/liushuangls/go-anthropic/v2"
-	openai "github.com/sashabaranov/go-openai"
 )
 
 type AnthropicClient struct {
@@ -26,20 +25,30 @@ func NewAnthropicClient(client *anthropic.Client) (*AnthropicClient, error) {
 	return o, nil
 }
 
-func (a *AnthropicClient) CreateChatCompletion(ctx context.Context, request Request, mode Mode, schema *Schema) (string, error) {
+func (a *AnthropicClient) Chat(ctx context.Context, request interface{}, mode Mode, schema *Schema) (string, error) {
+
+	req, ok := request.(anthropic.MessagesRequest)
+	if !ok {
+		return "", fmt.Errorf("invalid request type for %s client", a.Name)
+	}
+
+	if !req.Stream {
+		return "", errors.New("streaming is not supported by this method; use CreateChatCompletionStream instead")
+	}
+
 	switch mode {
 	case ModeToolCall:
-		return a.completionToolCall(ctx, request, schema)
+		return a.completionToolCall(ctx, &req, schema)
 	case ModeJSONSchema:
-		return a.completionJSONSchema(ctx, request, schema)
+		return a.completionJSONSchema(ctx, &req, schema)
 	default:
 		return "", fmt.Errorf("mode '%s' is not supported for %s", mode, a.Name)
 	}
 }
 
-func (a *AnthropicClient) completionToolCall(ctx context.Context, request Request, schema *Schema) (string, error) {
+func (a *AnthropicClient) completionToolCall(ctx context.Context, request *anthropic.MessagesRequest, schema *Schema) (string, error) {
 
-	tools := []anthropic.ToolDefinition{}
+	request.Tools = []anthropic.ToolDefinition{}
 
 	for _, function := range schema.Functions {
 		t := anthropic.ToolDefinition{
@@ -47,22 +56,10 @@ func (a *AnthropicClient) completionToolCall(ctx context.Context, request Reques
 			Description: function.Description,
 			InputSchema: function.Parameters,
 		}
-		tools = append(tools, t)
+		request.Tools = append(request.Tools, t)
 	}
 
-	messages, err := toAnthropicMessages(&request)
-	if err != nil {
-		return "", err
-	}
-
-	req := anthropic.MessagesRequest{
-		Model:     request.Model,
-		Messages:  *messages,
-		Tools:     tools,
-		MaxTokens: 1000, // TODO: make configurable
-	}
-
-	resp, err := a.client.CreateMessages(ctx, req)
+	resp, err := a.client.CreateMessages(ctx, *request)
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +82,7 @@ func (a *AnthropicClient) completionToolCall(ctx context.Context, request Reques
 
 }
 
-func (a *AnthropicClient) completionJSONSchema(ctx context.Context, request Request, schema *Schema) (string, error) {
+func (a *AnthropicClient) completionJSONSchema(ctx context.Context, request *anthropic.MessagesRequest, schema *Schema) (string, error) {
 
 	system := fmt.Sprintf(`
 Please responsd with json in the following json_schema:
@@ -95,19 +92,13 @@ Please responsd with json in the following json_schema:
 Make sure to return an instance of the JSON, not the schema itself.
 `, schema.String)
 
-	messages, err := toAnthropicMessages(&request)
-	if err != nil {
-		return "", err
+	if request.System == "" {
+		request.System = system
+	} else {
+		request.System += system
 	}
 
-	req := anthropic.MessagesRequest{
-		Model:     request.Model,
-		System:    system,
-		Messages:  *messages,
-		MaxTokens: 1000, // TODO: make configurable
-	}
-
-	resp, err := a.client.CreateMessages(ctx, req)
+	resp, err := a.client.CreateMessages(ctx, *request)
 	if err != nil {
 		return "", err
 	}
@@ -163,8 +154,4 @@ func toAnthropicMessages(request *Request) (*[]anthropic.Message, error) {
 	}
 
 	return &messages, nil
-}
-
-func (a *AnthropicClient) CreateChatCompletionStream(ctx context.Context, request openai.ChatCompletionRequest, mode string, schema *Schema) (<-chan string, error) {
-	panic("unimplemented")
 }

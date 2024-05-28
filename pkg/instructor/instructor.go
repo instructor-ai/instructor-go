@@ -7,15 +7,33 @@ import (
 	"reflect"
 	"strings"
 
+	cohere "github.com/cohere-ai/cohere-go/v2/client"
 	anthropic "github.com/liushuangls/go-anthropic/v2"
 	openai "github.com/sashabaranov/go-openai"
 )
 
+type Client interface {
+	Chat(
+		ctx context.Context,
+		request interface{},
+		mode Mode,
+		schema *Schema,
+	) (string, error)
+
+	ChatStream(
+		ctx context.Context,
+		request interface{},
+		mode Mode,
+		schema *Schema,
+	) (<-chan string, error)
+}
+
 type Instructor struct {
-	Client     Client
 	Provider   Provider
 	Mode       Mode
 	MaxRetries int
+
+	Client
 }
 
 func FromOpenAI(client *openai.Client, opts ...Options) (*Instructor, error) {
@@ -54,7 +72,11 @@ func FromAnthropic(client *anthropic.Client, opts ...Options) (*Instructor, erro
 	return i, nil
 }
 
-func (i *Instructor) CreateChatCompletion(ctx context.Context, request Request, response any) error {
+func FromCohere(client *cohere.Client, opts ...Options) (*Instructor, error) {
+	panic("not implemented")
+}
+
+func (i *Instructor) Chat(ctx context.Context, request interface{}, response any) error {
 
 	t := reflect.TypeOf(response)
 
@@ -65,7 +87,7 @@ func (i *Instructor) CreateChatCompletion(ctx context.Context, request Request, 
 
 	for attempt := 0; attempt < i.MaxRetries; attempt++ {
 
-		text, err := i.Client.CreateChatCompletion(ctx, request, i.Mode, schema)
+		text, err := i.Client.Chat(ctx, request, i.Mode, schema)
 		if err != nil {
 			// no retry on non-marshalling/validation errors
 			// return err
@@ -90,13 +112,17 @@ func (i *Instructor) CreateChatCompletion(ctx context.Context, request Request, 
 	return errors.New("hit max retry attempts")
 }
 
-const WRAPPER_END = `"items": [`
-
-type StreamWrapper[T any] struct {
-	Items []T `json:"items"`
+func (i *Instructor) CreateChatCompletion(ctx context.Context, request interface{}, response any) error {
+	return i.Chat(ctx, request, response)
 }
 
-func (i *Instructor) CreateChatCompletionStream(ctx context.Context, request Request, response any) (chan any, error) {
+func (i *Instructor) ChatStream(ctx context.Context, request interface{}, response any) (chan any, error) {
+
+	const WRAPPER_END = `"items": [`
+
+	type StreamWrapper[T any] struct {
+		Items []T `json:"items"`
+	}
 
 	responseType := reflect.TypeOf(response)
 
@@ -114,9 +140,7 @@ func (i *Instructor) CreateChatCompletionStream(ctx context.Context, request Req
 		return nil, err
 	}
 
-	request.Stream = true
-
-	ch, err := i.Client.CreateChatCompletionStream(ctx, request, i.Mode, schema)
+	ch, err := i.Client.ChatStream(ctx, &request, i.Mode, schema)
 	if err != nil {
 		return nil, err
 	}
@@ -191,6 +215,10 @@ func (i *Instructor) CreateChatCompletionStream(ctx context.Context, request Req
 	}()
 
 	return parsedChan, nil
+}
+
+func (i *Instructor) CreateChatCompletionStream(ctx context.Context, request interface{}, response any) (chan any, error) {
+	return i.ChatStream(ctx, request, response)
 }
 
 func processResponse(responseStr string, response *any) error {
