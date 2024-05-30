@@ -34,27 +34,22 @@ func main() {
 	config := openai.DefaultConfig("ollama")
 	config.BaseURL = "http://localhost:11434/v1"
 
-	client, err := instructor.FromOpenAI(
+	client := instructor.FromOpenAI(
 		openai.NewClientWithConfig(config),
 		instructor.WithMode(instructor.ModeJSON),
 		instructor.WithMaxRetries(3),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	var character Character
-	err = client.CreateChatCompletion(
-		ctx,
-		instructor.Request{
-			Model: "llama3",
-			Messages: []instructor.Message{
-				{
-					Role:    instructor.RoleUser,
-					Content: "Tell me about the Hal 9000",
-				},
+	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: "llama3",
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role:    instructor.RoleUser,
+				Content: "Tell me about the Hal 9000",
 			},
 		},
+	},
 		&character,
 	)
 	if err != nil {

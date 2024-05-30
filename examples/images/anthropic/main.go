@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 
 	"github.com/instructor-ai/instructor-go/pkg/instructor"
@@ -32,40 +35,36 @@ func (bc *MovieCatalog) PrintCatalog() {
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromAnthropic(
+	client := instructor.FromAnthropic(
 		anthropic.NewClient(os.Getenv("ANTHROPIC_API_KEY")),
 		instructor.WithMode(instructor.ModeJSONSchema),
 		instructor.WithMaxRetries(3),
 	)
+
+	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.jpg"
+	data, err := urlToBase64(url)
 	if err != nil {
 		panic(err)
 	}
 
-	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.png"
-
 	var movieCatalog MovieCatalog
-	err = client.CreateChatCompletion(
-		ctx,
-		instructor.Request{
-			Model: "claude-3-haiku-20240307",
-			Messages: []instructor.Message{
-				{
-					Role: instructor.RoleUser,
-					MultiContent: []instructor.ChatMessagePart{
-						{
-							Type: instructor.ChatMessagePartTypeText,
-							Text: "Extract the movie catalog from the screenshot",
-						},
-						{
-							Type: instructor.ChatMessagePartTypeImageURL,
-							ImageURL: &instructor.ChatMessageImageURL{
-								URL: url,
-							},
-						},
-					},
+	_, err = client.CreateMessages(ctx, anthropic.MessagesRequest{
+		Model: "claude-3-haiku-20240307",
+		Messages: []anthropic.Message{
+			{
+				Role: instructor.RoleUser,
+				Content: []anthropic.MessageContent{
+					anthropic.NewImageMessageContent(anthropic.MessageContentImageSource{
+						Type:      "base64",
+						MediaType: "image/jpeg",
+						Data:      data,
+					}),
+					anthropic.NewTextMessageContent("Extract the movie catalog from the screenshot"),
 				},
 			},
 		},
+		MaxTokens: 1000,
+	},
 		&movieCatalog,
 	)
 	if err != nil {
@@ -130,4 +129,23 @@ func main() {
 		Title:  Larceny
 		--------------------
 	*/
+}
+
+/*
+ * Image utilties
+ */
+
+func urlToBase64(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(data), nil
 }

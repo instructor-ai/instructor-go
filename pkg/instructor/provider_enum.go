@@ -3,7 +3,7 @@ package instructor
 type Provider = string
 
 const (
-	OpenAI    Provider = "OpenAI"
-	Anthropic Provider = "Anthropic"
-	Cohere    Provider = "Cohere"
+	ProviderOpenAI    Provider = "OpenAI"
+	ProviderAnthropic Provider = "Anthropic"
+	ProviderCohere    Provider = "Cohere"
 )

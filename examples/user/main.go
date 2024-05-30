@@ -17,20 +17,17 @@ type Person struct {
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromOpenAI(
+	client := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
 		instructor.WithMaxRetries(3),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	var person Person
-	err = client.CreateChatCompletion(
+	resp, err := client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model: openai.GPT4Turbo20240409,
+			Model: openai.GPT4o,
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,
@@ -40,6 +37,7 @@ func main() {
 		},
 		&person,
 	)
+	_ = resp // sends back original response so no information loss from original API
 	if err != nil {
 		panic(err)
 	}

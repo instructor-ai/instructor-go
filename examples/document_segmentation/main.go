@@ -71,31 +71,32 @@ func getSectionsText(structuredDoc StructuredDocument, line2text map[int]string)
 }
 
 func main() {
-	document := `
-	Introduction to Multi-Head Attention
-	In the very first figure, at the top of this article, we saw that transformers use a module called multi-head attention. How does that relate to the self-attention mechanism (scaled-dot product attention) we walked through above?
-	In the scaled dot-product attention, the input sequence was transformed using three matrices representing the query, key, and value. These three matrices can be considered as a single attention head in the context of multi-head attention. The figure below summarizes this single attention head we covered previously:
-	As its name implies, multi-head attention involves multiple such heads, each consisting of query, key, and value matrices. This concept is similar to the use of multiple kernels in convolutional neural networks.
-	To illustrate this in code, suppose we have 3 attention heads, so we now extend the \(d' \times d\) dimensional weight matrices so \(3 \times d' \times d\):
-	In:
-	h = 3
-	multihead_W_query = torch.nn.Parameter(torch.rand(h, d_q, d))
-	multihead_W_key = torch.nn.Parameter(torch.rand(h, d_k, d))
-	multihead_W_value = torch.nn.Parameter(torch.rand(h, d_v, d))
-	Consequently, each query element is now \(3 \times d_q\) dimensional, where \(d_q=24\) (here, let’s keep the focus on the 3rd element corresponding to index position 2):
-	In:
-	multihead_query_2 = multihead_W_query.matmul(x_2)
-	print(multihead_query_2.shape)
-	Out:
-	torch.Size([3, 24])
-	`
+	ctx := context.Background()
 
 	client := cohereclient.NewClient(cohereclient.WithToken("<YOUR_AUTH_TOKEN>"))
-	response, err := client.Chat(
-		context.TODO(),
-		&cohere.ChatRequest{
-			Message: "How is the weather today?",
-		},
+
+	document := `
+Introduction to Multi-Head Attention
+In the very first figure, at the top of this article, we saw that transformers use a module called multi-head attention. How does that relate to the self-attention mechanism (scaled-dot product attention) we walked through above?
+In the scaled dot-product attention, the input sequence was transformed using three matrices representing the query, key, and value. These three matrices can be considered as a single attention head in the context of multi-head attention. The figure below summarizes this single attention head we covered previously:
+As its name implies, multi-head attention involves multiple such heads, each consisting of query, key, and value matrices. This concept is similar to the use of multiple kernels in convolutional neural networks.
+To illustrate this in code, suppose we have 3 attention heads, so we now extend the \(d' \times d\) dimensional weight matrices so \(3 \times d' \times d\):
+In:
+h = 3
+multihead_W_query = torch.nn.Parameter(torch.rand(h, d_q, d))
+multihead_W_key = torch.nn.Parameter(torch.rand(h, d_k, d))
+multihead_W_value = torch.nn.Parameter(torch.rand(h, d_v, d))
+Consequently, each query element is now \(3 \times d_q\) dimensional, where \(d_q=24\) (here, let’s keep the focus on the 3rd element corresponding to index position 2):
+In:
+multihead_query_2 = multihead_W_query.matmul(x_2)
+print(multihead_query_2.shape)
+Out:
+torch.Size([3, 24])
+`
+
+	response, err := client.Chat(ctx, &cohere.ChatRequest{
+		Message: "How is the weather today?",
+	},
 	)
 	_, _ = response, err
 
