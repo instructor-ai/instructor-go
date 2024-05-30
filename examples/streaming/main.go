@@ -34,13 +34,10 @@ Recommendation [
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromOpenAI(
+	client := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	profileData := `
 Customer ID: 12345
@@ -74,25 +71,24 @@ Preferred Shopping Times: Weekend Evenings
 		productList += product.String() + "\n"
 	}
 
-	recommendationChan, err := client.CreateChatCompletionStream(
-		ctx,
-		instructor.Request{
-			Model: openai.GPT4o20240513,
-			Messages: []instructor.Message{
-				{
-					Role: instructor.RoleSystem,
-					Content: fmt.Sprintf(`Generate the product recommendations from the product list based on the customer profile.
+	recommendationChan, err := client.CreateChatCompletionStream(ctx, openai.ChatCompletionRequest{
+		Model: openai.GPT4o20240513,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role: instructor.RoleSystem,
+				Content: fmt.Sprintf(`
+Generate the product recommendations from the product list based on the customer profile.
 Return in order of highest recommended first.
 Product list:
 %s`, productList),
-				},
-				{
-					Role:    instructor.RoleUser,
-					Content: fmt.Sprintf("User profile:\n%s", profileData),
-				},
 			},
-			Stream: true,
+			{
+				Role:    instructor.RoleUser,
+				Content: fmt.Sprintf("User profile:\n%s", profileData),
+			},
 		},
+		Stream: true,
+	},
 		*new(Recommendation),
 	)
 	if err != nil {

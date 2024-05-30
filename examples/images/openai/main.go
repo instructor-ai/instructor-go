@@ -30,40 +30,35 @@ func (bc *BookCatalog) PrintCatalog() {
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromOpenAI(
+	client := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
 		instructor.WithMaxRetries(3),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png"
 
 	var bookCatalog BookCatalog
-	err = client.CreateChatCompletion(
-		ctx,
-		instructor.Request{
-			Model: openai.GPT4o,
-			Messages: []instructor.Message{
-				{
-					Role: instructor.RoleUser,
-					MultiContent: []instructor.ChatMessagePart{
-						{
-							Type: instructor.ChatMessagePartTypeText,
-							Text: "Extract book catelog from the image",
-						},
-						{
-							Type: instructor.ChatMessagePartTypeImageURL,
-							ImageURL: &instructor.ChatMessageImageURL{
-								URL: url,
-							},
+	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: openai.GPT4o,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role: instructor.RoleUser,
+				MultiContent: []openai.ChatMessagePart{
+					{
+						Type: openai.ChatMessagePartTypeText,
+						Text: "Extract book catelog from the image",
+					},
+					{
+						Type: openai.ChatMessagePartTypeImageURL,
+						ImageURL: &openai.ChatMessageImageURL{
+							URL: url,
 						},
 					},
 				},
 			},
 		},
+	},
 		&bookCatalog,
 	)
 

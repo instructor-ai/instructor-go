@@ -31,27 +31,22 @@ type Searches = []Search
 
 func segment(ctx context.Context, data string) *Searches {
 
-	client, err := instructor.FromOpenAI(
+	client := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeToolCall),
 		instructor.WithMaxRetries(3),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	var searches Searches
-	err = client.CreateChatCompletion(
-		ctx,
-		instructor.Request{
-			Model: openai.GPT4o,
-			Messages: []instructor.Message{
-				{
-					Role:    instructor.RoleUser,
-					Content: fmt.Sprintf("Consider the data below: '\n%s' and segment it into multiple search queries", data),
-				},
+	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: openai.GPT4o,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role:    instructor.RoleUser,
+				Content: fmt.Sprintf("Consider the data below: '\n%s' and segment it into multiple search queries", data),
 			},
 		},
+	},
 		&searches,
 	)
 	if err != nil {

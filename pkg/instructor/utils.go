@@ -1,10 +1,6 @@
 package instructor
 
 import (
-	"encoding/base64"
-	"fmt"
-	"io"
-	"net/http"
 	"strings"
 )
 
@@ -14,36 +10,6 @@ func toPtr[T any](val T) *T {
 
 func prepend[T any](to []T, from T) []T {
 	return append([]T{from}, to...)
-}
-
-func fetchMediaType(url string) (string, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	contentType := resp.Header.Get("Content-Type")
-	if contentType == "" {
-		return "", fmt.Errorf("could not determine content type")
-	}
-
-	return contentType, nil
-}
-
-func urlToBase64(url string) (string, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return base64.StdEncoding.EncodeToString(data), nil
 }
 
 // Removes any prefixes before the JSON (like "Sure, here you go:")
