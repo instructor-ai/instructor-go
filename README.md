@@ -48,29 +48,27 @@ type Person struct {
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromOpenAI(
+	client := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
 		instructor.WithMaxRetries(3),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	var person Person
-	err = client.CreateChatCompletion(
+	resp, err := client.CreateChatCompletion(
 		ctx,
-		instructor.Request{
-			Model: openai.GPT4Turbo20240409,
-			Messages: []instructor.Message{
+		openai.ChatCompletionRequest{
+			Model: openai.GPT4o,
+			Messages: []openai.ChatCompletionMessage{
 				{
-					Role:    instructor.RoleUser,
+					Role:    openai.ChatMessageRoleUser,
 					Content: "Extract Robby is 22 years old.",
 				},
 			},
 		},
 		&person,
 	)
+	_ = resp // sends back original response so no information loss from original API
 	if err != nil {
 		panic(err)
 	}
@@ -135,27 +133,22 @@ type Searches = []Search
 
 func segment(ctx context.Context, data string) *Searches {
 
-	client, err := instructor.FromOpenAI(
+	client := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeToolCall),
 		instructor.WithMaxRetries(3),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	var searches Searches
-	err = client.CreateChatCompletion(
-		ctx,
-		instructor.Request{
-			Model: openai.GPT4o,
-			Messages: []instructor.Message{
-				{
-					Role:    instructor.RoleUser,
-					Content: fmt.Sprintf("Consider the data below: '\n%s' and segment it into multiple search queries", data),
-				},
+	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: openai.GPT4o,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role:    instructor.RoleUser,
+				Content: fmt.Sprintf("Consider the data below: '\n%s' and segment it into multiple search queries", data),
 			},
 		},
+	},
 		&searches,
 	)
 	if err != nil {
@@ -197,7 +190,7 @@ go run examples/classification/main.go
 </details>
 
 ```go
-  package main
+package main
 
 import (
 	"context"
@@ -227,29 +220,23 @@ type Prediction struct {
 func classify(data string) *Prediction {
 	ctx := context.Background()
 
-	client, err := instructor.FromAnthropic(
+	client := instructor.FromAnthropic(
 		anthropic.NewClient(os.Getenv("ANTHROPIC_API_KEY")),
 		instructor.WithMode(instructor.ModeToolCall),
 		instructor.WithMaxRetries(3),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	var prediction Prediction
-	err = client.CreateChatCompletion(
-		ctx,
-		instructor.Request{
-			Model: anthropic.ModelClaude3Haiku20240307,
-			Messages: []instructor.Message{
-				{
-					Role:    instructor.RoleUser,
-					Content: fmt.Sprintf("Classify the following support ticket: %s", data),
-				},
-			},
+	resp, err := client.CreateMessages(ctx, anthropic.MessagesRequest{
+		Model: anthropic.ModelClaude3Haiku20240307,
+		Messages: []anthropic.Message{
+			anthropic.NewUserTextMessage(fmt.Sprintf("Classify the following support ticket: %s", data)),
 		},
+		MaxTokens: 500,
+	},
 		&prediction,
 	)
+	_ = resp // sends back original response so no information loss from original API
 	if err != nil {
 		panic(err)
 	}
@@ -340,40 +327,35 @@ func (bc *BookCatalog) PrintCatalog() {
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromOpenAI(
+	client := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
 		instructor.WithMaxRetries(3),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png"
 
 	var bookCatalog BookCatalog
-	err = client.CreateChatCompletion(
-		ctx,
-		instructor.Request{
-			Model: openai.GPT4o,
-			Messages: []instructor.Message{
-				{
-					Role: instructor.RoleUser,
-					MultiContent: []instructor.ChatMessagePart{
-						{
-							Type: instructor.ChatMessagePartTypeText,
-							Text: "Extract book catelog from the image",
-						},
-						{
-							Type: instructor.ChatMessagePartTypeImageURL,
-							ImageURL: &instructor.ChatMessageImageURL{
-								URL: url,
-							},
+	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: openai.GPT4o,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role: instructor.RoleUser,
+				MultiContent: []openai.ChatMessagePart{
+					{
+						Type: openai.ChatMessagePartTypeText,
+						Text: "Extract book catelog from the image",
+					},
+					{
+						Type: openai.ChatMessagePartTypeImageURL,
+						ImageURL: &openai.ChatMessageImageURL{
+							URL: url,
 						},
 					},
 				},
 			},
 		},
+	},
 		&bookCatalog,
 	)
 
@@ -456,7 +438,10 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 
 	"github.com/instructor-ai/instructor-go/pkg/instructor"
@@ -486,40 +471,36 @@ func (bc *MovieCatalog) PrintCatalog() {
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromAnthropic(
+	client := instructor.FromAnthropic(
 		anthropic.NewClient(os.Getenv("ANTHROPIC_API_KEY")),
 		instructor.WithMode(instructor.ModeJSONSchema),
 		instructor.WithMaxRetries(3),
 	)
+
+	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.jpg"
+	data, err := urlToBase64(url)
 	if err != nil {
 		panic(err)
 	}
 
-	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.png"
-
 	var movieCatalog MovieCatalog
-	err = client.CreateChatCompletion(
-		ctx,
-		instructor.Request{
-			Model: "claude-3-haiku-20240307",
-			Messages: []instructor.Message{
-				{
-					Role: instructor.RoleUser,
-					MultiContent: []instructor.ChatMessagePart{
-						{
-							Type: instructor.ChatMessagePartTypeText,
-							Text: "Extract the movie catalog from the screenshot",
-						},
-						{
-							Type: instructor.ChatMessagePartTypeImageURL,
-							ImageURL: &instructor.ChatMessageImageURL{
-								URL: url,
-							},
-						},
-					},
+	_, err = client.CreateMessages(ctx, anthropic.MessagesRequest{
+		Model: "claude-3-haiku-20240307",
+		Messages: []anthropic.Message{
+			{
+				Role: instructor.RoleUser,
+				Content: []anthropic.MessageContent{
+					anthropic.NewImageMessageContent(anthropic.MessageContentImageSource{
+						Type:      "base64",
+						MediaType: "image/jpeg",
+						Data:      data,
+					}),
+					anthropic.NewTextMessageContent("Extract the movie catalog from the screenshot"),
 				},
 			},
 		},
+		MaxTokens: 1000,
+	},
 		&movieCatalog,
 	)
 	if err != nil {
@@ -585,6 +566,25 @@ func main() {
 		--------------------
 	*/
 }
+
+/*
+ * Image utilties
+ */
+
+func urlToBase64(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(data), nil
+}
 ```
 
 </details>
@@ -639,13 +639,10 @@ Recommendation [
 func main() {
 	ctx := context.Background()
 
-	client, err := instructor.FromOpenAI(
+	client := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	profileData := `
 Customer ID: 12345
@@ -679,25 +676,24 @@ Preferred Shopping Times: Weekend Evenings
 		productList += product.String() + "\n"
 	}
 
-	recommendationChan, err := client.CreateChatCompletionStream(
-		ctx,
-		instructor.Request{
-			Model: openai.GPT4o20240513,
-			Messages: []instructor.Message{
-				{
-					Role: instructor.RoleSystem,
-					Content: fmt.Sprintf(`Generate the product recommendations from the product list based on the customer profile.
+	recommendationChan, err := client.CreateChatCompletionStream(ctx, openai.ChatCompletionRequest{
+		Model: openai.GPT4o20240513,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role: instructor.RoleSystem,
+				Content: fmt.Sprintf(`
+Generate the product recommendations from the product list based on the customer profile.
 Return in order of highest recommended first.
 Product list:
 %s`, productList),
-				},
-				{
-					Role:    instructor.RoleUser,
-					Content: fmt.Sprintf("User profile:\n%s", profileData),
-				},
 			},
-			Stream: true,
+			{
+				Role:    instructor.RoleUser,
+				Content: fmt.Sprintf("User profile:\n%s", profileData),
+			},
 		},
+		Stream: true,
+	},
 		*new(Recommendation),
 	)
 	if err != nil {
