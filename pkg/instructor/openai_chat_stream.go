@@ -47,7 +47,7 @@ func (i *InstructorOpenAI) chatStream(ctx context.Context, request interface{}, 
 }
 
 func (i *InstructorOpenAI) chatToolCallStream(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (<-chan string, error) {
-	request.Tools = createTools(schema)
+	request.Tools = createOpenAITools(schema)
 	return i.createStream(ctx, request)
 }
 
@@ -63,7 +63,7 @@ func (i *InstructorOpenAI) chatJSONSchemaStream(ctx context.Context, request *op
 	return i.createStream(ctx, request)
 }
 
-func createTools(schema *Schema) []openai.Tool {
+func createOpenAITools(schema *Schema) []openai.Tool {
 	tools := make([]openai.Tool, 0, len(schema.Functions))
 	for _, function := range schema.Functions {
 		f := openai.FunctionDefinition{
@@ -90,7 +90,7 @@ Make sure to return an array with the elements an instance of the JSON, not the 
 `, schema.String)
 
 	msg := &openai.ChatCompletionMessage{
-		Role:    RoleSystem,
+		Role:    openai.ChatMessageRoleSystem,
 		Content: message,
 	}
 

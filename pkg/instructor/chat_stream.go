@@ -7,13 +7,13 @@ import (
 	"strings"
 )
 
-func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, response any) (<-chan any, error) {
+type StreamWrapper[T any] struct {
+	Items []T `json:"items"`
+}
 
-	type StreamWrapper[T any] struct {
-		Items []T `json:"items"`
-	}
+const WRAPPER_END = `"items": [`
 
-	const WRAPPER_END = `"items": [`
+func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, response any) (<-chan interface{}, error) {
 
 	responseType := reflect.TypeOf(response)
 
@@ -36,11 +36,19 @@ func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, r
 		return nil, err
 	}
 
-	parsedChan := make(chan any) // Buffered channel for parsed objects
+	parsedChan := parseStream(ctx, ch, responseType)
+
+	return parsedChan, nil
+}
+
+func parseStream(ctx context.Context, ch <-chan string, responseType reflect.Type) <-chan interface{} {
+
+	parsedChan := make(chan any)
 
 	go func() {
 		defer close(parsedChan)
-		var buffer strings.Builder
+
+		buffer := new(strings.Builder)
 		inArray := false
 
 		for {
@@ -49,61 +57,72 @@ func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, r
 				return
 			case text, ok := <-ch:
 				if !ok {
-					// Steeam closed
-
-					// Get last element out of stream wrapper
-
-					data := buffer.String()
-
-					if idx := strings.LastIndex(data, "]"); idx != -1 {
-						data = data[:idx] + data[idx+1:]
-					}
-
-					// Process the remaining data in the buffer
-					decoder := json.NewDecoder(strings.NewReader(data))
-					for decoder.More() {
-						instance := reflect.New(responseType).Interface()
-						err := decoder.Decode(instance)
-						if err != nil {
-							break
-						}
-						parsedChan <- instance
-					}
+					// Stream closed
+					processRemainingBuffer(buffer, parsedChan, responseType)
 					return
 				}
+
 				buffer.WriteString(text)
 
-				// eat all input until elements stream starts
+				// Eat all input until elements stream starts
 				if !inArray {
-					idx := strings.Index(buffer.String(), WRAPPER_END)
-					if idx == -1 {
-						continue
-					}
-
-					inArray = true
-					bufferStr := buffer.String()
-					trimmed := strings.TrimSpace(bufferStr[idx+len(WRAPPER_END):])
-					buffer.Reset()
-					buffer.WriteString(trimmed)
+					inArray = startArray(buffer)
 				}
 
-				data := buffer.String()
-				decoder := json.NewDecoder(strings.NewReader(data))
-
-				for decoder.More() {
-					instance := reflect.New(responseType).Interface()
-					err := decoder.Decode(instance)
-					if err != nil {
-						break
-					}
-					parsedChan <- instance
-
-					buffer.Reset()
-					buffer.WriteString(data[len(data):])
-				}
+				processBuffer(buffer, parsedChan, responseType)
 			}
 		}
 	}()
 
-	return parsedChan, nil
+	return parsedChan
+}
+
+func startArray(buffer *strings.Builder) bool {
+
+	data := buffer.String()
+
+	idx := strings.Index(data, WRAPPER_END)
+	if idx == -1 {
+		return false
+	}
+
+	trimmed := strings.TrimSpace(data[idx+len(WRAPPER_END):])
+	buffer.Reset()
+	buffer.WriteString(trimmed)
+
+	return true
+}
+
+func processBuffer(buffer *strings.Builder, parsedChan chan<- interface{}, responseType reflect.Type) {
+
+	data := buffer.String()
+
+	data, remaining := getFirstFullJSONElement(&data)
+
+	decoder := json.NewDecoder(strings.NewReader(data))
+
+	for decoder.More() {
+		instance := reflect.New(responseType).Interface()
+		err := decoder.Decode(instance)
+		if err != nil {
+			break
+		}
+		parsedChan <- instance
+
+		buffer.Reset()
+		buffer.WriteString(remaining)
+	}
+}
+
+func processRemainingBuffer(buffer *strings.Builder, parsedChan chan<- interface{}, responseType reflect.Type) {
+
+	data := buffer.String()
+
+	data = extractJSON(&data)
+
+	if idx := strings.LastIndex(data, "]"); idx != -1 {
+		data = data[:idx]
+	}
+
+	processBuffer(buffer, parsedChan, responseType)
 }

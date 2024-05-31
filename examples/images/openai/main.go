@@ -43,7 +43,7 @@ func main() {
 		Model: openai.GPT4o,
 		Messages: []openai.ChatCompletionMessage{
 			{
-				Role: instructor.RoleUser,
+				Role: openai.ChatMessageRoleUser,
 				MultiContent: []openai.ChatMessagePart{
 					{
 						Type: openai.ChatMessagePartTypeText,

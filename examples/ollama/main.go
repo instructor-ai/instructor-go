@@ -45,7 +45,7 @@ func main() {
 		Model: "llama3",
 		Messages: []openai.ChatCompletionMessage{
 			{
-				Role:    instructor.RoleUser,
+				Role:    openai.ChatMessageRoleUser,
 				Content: "Tell me about the Hal 9000",
 			},
 		},
