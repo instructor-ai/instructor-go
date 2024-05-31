@@ -42,7 +42,7 @@ func segment(ctx context.Context, data string) *Searches {
 		Model: openai.GPT4o,
 		Messages: []openai.ChatCompletionMessage{
 			{
-				Role:    instructor.RoleUser,
+				Role:    openai.ChatMessageRoleUser,
 				Content: fmt.Sprintf("Consider the data below: '\n%s' and segment it into multiple search queries", data),
 			},
 		},

@@ -52,7 +52,7 @@ func main() {
 		Model: "claude-3-haiku-20240307",
 		Messages: []anthropic.Message{
 			{
-				Role: instructor.RoleUser,
+				Role: anthropic.RoleUser,
 				Content: []anthropic.MessageContent{
 					anthropic.NewImageMessageContent(anthropic.MessageContentImageSource{
 						Type:      "base64",

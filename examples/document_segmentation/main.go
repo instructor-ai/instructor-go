@@ -2,21 +2,111 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	cohere "github.com/cohere-ai/cohere-go/v2"
 	cohereclient "github.com/cohere-ai/cohere-go/v2/client"
+	"github.com/instructor-ai/instructor-go/pkg/instructor"
 )
 
 type Section struct {
-	Title      string `json:"title" jsonschema:"description=main topic of this section of the document"`
-	StartIndex int    `json:"start_index" jsonschema:"description=line number where the section begins"`
-	EndIndex   int    `json:"end_index" jsonschema:"description=line number where the section ends"`
+	Title      string `json:"title"         jsonschema:"description=main topic of this section of the document"`
+	StartIndex int    `json:"start_index"   jsonschema:"description=line number where the section begins"`
+	EndIndex   int    `json:"end_index"     jsonschema:"description=line number where the section ends"`
 }
 
 type StructuredDocument struct {
 	Sections []Section `json:"sections" jsonschema:"description=a list of sections of the document"`
+}
+
+type Segment struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+	Start   int    `json:"start"`
+	End     int    `json:"end"`
+}
+
+func (s Segment) String() string {
+	return fmt.Sprintf("Title: %s\nContent:\n%s\nStart: %d\nEnd: %d\n",
+		s.Title, s.Content, s.Start, s.End)
+}
+
+func (sd *StructuredDocument) PrettyPrint() string {
+	s, err := json.MarshalIndent(sd, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return string(s)
+}
+
+func main() {
+	ctx := context.Background()
+
+	client := instructor.FromCohere(
+		cohereclient.NewClient(cohereclient.WithToken(os.Getenv("COHERE_API_KEY"))),
+		instructor.WithMode(instructor.ModeJSON),
+		instructor.WithMaxRetries(3),
+	)
+
+	/*
+	 *	Document is downloaded from a tutorial on Transformers from Sebastian Raschka: https://sebastianraschka.com/blog/2023/self-attention-from-scratch.html
+	 *	Downloaded and scraped via `trafilatura`: https://github.com/adbar/trafilatura
+	 */
+	doc, err := os.ReadFile("examples/document_segmentation/self-attention-from-scratch.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	getStructuredDocument := func(docWithLines string) *StructuredDocument {
+		var structuredDoc StructuredDocument
+		_, err := client.Chat(ctx, &cohere.ChatRequest{
+			Model: toPtr("command-r-plus"),
+			Preamble: toPtr(`
+You are a world class educator working on organizing your lecture notes.
+Read the document below and extract a StructuredDocument object from it where each section of the document is centered around a single concept/topic that can be taught in one lesson.
+Each line of the document is marked with its line number in square brackets (e.g. [1], [2], [3], etc). Use the line numbers to indicate section start and end.
+`),
+			Message: docWithLines,
+		},
+			&structuredDoc,
+		)
+		if err != nil {
+			panic(err)
+		}
+		return &structuredDoc
+	}
+
+	documentWithLineNumbers, line2text := docWithLines(string(doc))
+	structuredDoc := getStructuredDocument(documentWithLineNumbers)
+	segments := getSectionsText(structuredDoc, line2text)
+
+	println(segments[0].String())
+	/*
+		Title: Introduction to Self-Attention
+		Content:
+		Understanding and Coding the Self-Attention Mechanism of Large Language Models From Scratch
+		In this article, we are going to understand how self-attention works from scratch. This means we will code it ourselves one step at a time.
+		Since its introduction via the original transformer paper (Attention Is All You Need), self-attention has become a cornerstone of many state-of-the-art deep learning models, particularly in the field of Natural Language Processing (NLP). Since self-attention is now everywhere, it’s important to understand how it works.
+		Self-Attention
+		The concept of “attention” in deep learning has its roots in the effort to improve Recurrent Neural Networks (RNNs) for handling longer sequences or sentences. For instance, consider translating a sentence from one language to another. Translating a sentence word-by-word does not work effectively.
+		To overcome this issue, attention mechanisms were introduced to give access to all sequence elements at each time step. The key is to be selective and determine which words are most important in a specific context. In 2017, the transformer architecture introduced a standalone self-attention mechanism, eliminating the need for RNNs altogether.
+		(For brevity, and to keep the article focused on the technical self-attention details, and I am skipping parts of the motivation, but my Machine Learning with PyTorch and Scikit-Learn book has some additional details in Chapter 16 if you are interested.)
+		We can think of self-attention as a mechanism that enhances the information content of an input embedding by including information about the input’s context. In other words, the self-attention mechanism enables the model to weigh the importance of different elements in an input sequence and dynamically adjust their influence on the output. This is especially important for language processing tasks, where the meaning of a word can change based on its context within a sentence or document.
+		Note that there are many variants of self-attention. A particular focus has been on making self-attention more efficient. However, most papers still implement the original scaled-dot product attention mechanism discussed in this paper since it usually results in superior accuracy and because self-attention is rarely a computational bottleneck for most companies training large-scale transformers.
+		Start: 0
+		End: 9
+	*/
+}
+
+/*
+ * Preprocessing utilties
+ */
+
+func toPtr[T any](val T) *T {
+	return &val
 }
 
 func docWithLines(document string) (string, map[int]string) {
@@ -30,28 +120,8 @@ func docWithLines(document string) (string, map[int]string) {
 	return documentWithLineNumbers, line2text
 }
 
-// Mocking the call to the instructor and cohere client. Replace this with actual implementation.
-func getStructuredDocument(documentWithLineNumbers string) StructuredDocument {
-	// Mock response
-	return StructuredDocument{
-		Sections: []Section{
-			{
-				Title:      "Introduction",
-				StartIndex: 0,
-				EndIndex:   10,
-			},
-			{
-				Title:      "Background",
-				StartIndex: 10,
-				EndIndex:   20,
-			},
-			// Add more sections as needed
-		},
-	}
-}
-
-func getSectionsText(structuredDoc StructuredDocument, line2text map[int]string) []map[string]interface{} {
-	var segments []map[string]interface{}
+func getSectionsText(structuredDoc *StructuredDocument, line2text map[int]string) []Segment {
+	var segments []Segment
 	for _, s := range structuredDoc.Sections {
 		var contents []string
 		for lineID := s.StartIndex; lineID < s.EndIndex; lineID++ {
@@ -59,51 +129,13 @@ func getSectionsText(structuredDoc StructuredDocument, line2text map[int]string)
 				contents = append(contents, line)
 			}
 		}
-		segment := map[string]interface{}{
-			"title":   s.Title,
-			"content": strings.Join(contents, "\n"),
-			"start":   s.StartIndex,
-			"end":     s.EndIndex,
+		segment := Segment{
+			Title:   s.Title,
+			Content: strings.Join(contents, "\n"),
+			Start:   s.StartIndex,
+			End:     s.EndIndex,
 		}
 		segments = append(segments, segment)
 	}
 	return segments
-}
-
-func main() {
-	ctx := context.Background()
-
-	client := cohereclient.NewClient(cohereclient.WithToken("<YOUR_AUTH_TOKEN>"))
-
-	document := `
-Introduction to Multi-Head Attention
-In the very first figure, at the top of this article, we saw that transformers use a module called multi-head attention. How does that relate to the self-attention mechanism (scaled-dot product attention) we walked through above?
-In the scaled dot-product attention, the input sequence was transformed using three matrices representing the query, key, and value. These three matrices can be considered as a single attention head in the context of multi-head attention. The figure below summarizes this single attention head we covered previously:
-As its name implies, multi-head attention involves multiple such heads, each consisting of query, key, and value matrices. This concept is similar to the use of multiple kernels in convolutional neural networks.
-To illustrate this in code, suppose we have 3 attention heads, so we now extend the \(d' \times d\) dimensional weight matrices so \(3 \times d' \times d\):
-In:
-h = 3
-multihead_W_query = torch.nn.Parameter(torch.rand(h, d_q, d))
-multihead_W_key = torch.nn.Parameter(torch.rand(h, d_k, d))
-multihead_W_value = torch.nn.Parameter(torch.rand(h, d_v, d))
-Consequently, each query element is now \(3 \times d_q\) dimensional, where \(d_q=24\) (here, let’s keep the focus on the 3rd element corresponding to index position 2):
-In:
-multihead_query_2 = multihead_W_query.matmul(x_2)
-print(multihead_query_2.shape)
-Out:
-torch.Size([3, 24])
-`
-
-	response, err := client.Chat(ctx, &cohere.ChatRequest{
-		Message: "How is the weather today?",
-	},
-	)
-	_, _ = response, err
-
-	documentWithLineNumbers, line2text := docWithLines(document)
-	structuredDoc := getStructuredDocument(documentWithLineNumbers)
-	segments := getSectionsText(structuredDoc, line2text)
-
-	fmt.Println(segments[1]["title"])
-	fmt.Println(segments[1]["content"])
 }

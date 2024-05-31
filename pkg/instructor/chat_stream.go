@@ -3,6 +3,7 @@ package instructor
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -31,7 +32,7 @@ func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, r
 		return nil, err
 	}
 
-	ch, err := i.chatStream(ctx, request, schema)
+	ch, err := i.chatStream(ctx, &request, schema)
 	if err != nil {
 		return nil, err
 	}
@@ -60,14 +61,13 @@ func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, r
 					}
 
 					// Process the remaining data in the buffer
-					decoder := json.NewDecoder(strings.NewReader(data))
-					for decoder.More() {
-						instance := reflect.New(responseType).Interface()
-						err := decoder.Decode(instance)
+					for len(data) > 0 {
+						parsedObject, remaining, err := parseJSONObjectStream(data, responseType)
 						if err != nil {
 							break
 						}
-						parsedChan <- instance
+						parsedChan <- parsedObject
+						data = remaining
 					}
 					return
 				}
@@ -88,22 +88,61 @@ func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, r
 				}
 
 				data := buffer.String()
-				decoder := json.NewDecoder(strings.NewReader(data))
-
-				for decoder.More() {
-					instance := reflect.New(responseType).Interface()
-					err := decoder.Decode(instance)
-					if err != nil {
-						break
-					}
-					parsedChan <- instance
-
-					buffer.Reset()
-					buffer.WriteString(data[len(data):])
+				parsedObject, remaining, err := parseJSONObjectStream(data, responseType)
+				if err != nil {
+					break
 				}
+				parsedChan <- parsedObject
+				buffer.Reset()
+				buffer.WriteString(remaining)
 			}
 		}
 	}()
 
 	return parsedChan, nil
+}
+func parseJSONObjectStream(jsonStr string, responseType reflect.Type) (interface{}, string, error) {
+	decoder := json.NewDecoder(strings.NewReader(jsonStr))
+
+	// Skip the initial '{'
+	if _, err := consumeToken(decoder); err != nil {
+		return nil, "", err
+	}
+
+	instance := reflect.New(responseType).Interface()
+	if err := decoder.Decode(instance); err != nil {
+		return nil, "", err
+	}
+
+	remaining, err := consumeRemaining(decoder)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return instance, remaining, nil
+}
+
+func consumeToken(decoder *json.Decoder) (json.Token, error) {
+	token, err := decoder.Token()
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
+func consumeRemaining(decoder *json.Decoder) (string, error) {
+	token, err := decoder.Token()
+	if err != nil {
+		return "", err
+	}
+
+	switch t := token.(type) {
+	case json.Delim:
+		return string(t), nil
+	case string:
+		return t, nil
+	default:
+		// Handle other token types as needed
+		return "", fmt.Errorf("unexpected token type: %T", t)
+	}
 }

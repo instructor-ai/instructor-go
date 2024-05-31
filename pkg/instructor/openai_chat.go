@@ -138,7 +138,7 @@ Make sure to return an instance of the JSON, not the schema itself
 `, schema.String)
 
 	msg := &openai.ChatCompletionMessage{
-		Role:    RoleSystem,
+		Role:    openai.ChatMessageRoleSystem,
 		Content: message,
 	}
 

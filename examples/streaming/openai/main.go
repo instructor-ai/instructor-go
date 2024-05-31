@@ -75,7 +75,7 @@ Preferred Shopping Times: Weekend Evenings
 		Model: openai.GPT4o20240513,
 		Messages: []openai.ChatCompletionMessage{
 			{
-				Role: instructor.RoleSystem,
+				Role: openai.ChatMessageRoleSystem,
 				Content: fmt.Sprintf(`
 Generate the product recommendations from the product list based on the customer profile.
 Return in order of highest recommended first.
@@ -83,7 +83,7 @@ Product list:
 %s`, productList),
 			},
 			{
-				Role:    instructor.RoleUser,
+				Role:    openai.ChatMessageRoleUser,
 				Content: fmt.Sprintf("User profile:\n%s", profileData),
 			},
 		},
