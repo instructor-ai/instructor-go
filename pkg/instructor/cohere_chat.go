@@ -31,11 +31,30 @@ func (i *InstructorCohere) chat(ctx context.Context, request interface{}, schema
 	}
 
 	switch i.Mode() {
+	case ModeToolCall:
+		return i.chatToolCall(ctx, req, schema)
 	case ModeJSON:
 		return i.chatJSON(ctx, req, schema)
 	default:
 		return "", nil, fmt.Errorf("mode '%s' is not supported for %s", i.Mode(), i.Provider())
 	}
+}
+
+func (i *InstructorCohere) chatToolCall(ctx context.Context, request *cohere.ChatRequest, schema *Schema) (string, *cohere.NonStreamedChatResponse, error) {
+
+	request.Tools = []*cohere.Tool{createCohereTools(schema)}
+
+	resp, err := i.Client.Chat(ctx, request)
+	if err != nil {
+		return "", nil, err
+	}
+
+	_ = resp
+
+	// TODO: implement
+
+	panic("tool call not implemented Cohere")
+
 }
 
 func (i *InstructorCohere) chatJSON(ctx context.Context, request *cohere.ChatRequest, schema *Schema) (string, *cohere.NonStreamedChatResponse, error) {
@@ -59,4 +78,23 @@ func (i *InstructorCohere) addOrConcatJSONSystemPrompt(request *cohere.ChatReque
 	} else {
 		request.Preamble = toPtr(*request.Preamble + "\n" + schemaPrompt)
 	}
+}
+
+func createCohereTools(schema *Schema) *cohere.Tool {
+
+	tool := &cohere.Tool{
+		Name:                 "functions",
+		Description:          schema.Schema.Description,
+		ParameterDefinitions: make(map[string]*cohere.ToolParameterDefinitionsValue),
+	}
+
+	for _, function := range schema.Functions {
+		parameterDefinition := &cohere.ToolParameterDefinitionsValue{
+			Description: toPtr(function.Description),
+			Type:        function.Parameters.Type,
+		}
+		tool.ParameterDefinitions[function.Name] = parameterDefinition
+	}
+
+	return tool
 }

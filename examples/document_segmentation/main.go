@@ -47,7 +47,7 @@ func main() {
 
 	client := instructor.FromCohere(
 		cohereclient.NewClient(cohereclient.WithToken(os.Getenv("COHERE_API_KEY"))),
-		instructor.WithMode(instructor.ModeJSON),
+		instructor.WithMode(instructor.ModeToolCall),
 		instructor.WithMaxRetries(3),
 	)
 

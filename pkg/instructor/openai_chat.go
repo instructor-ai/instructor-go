@@ -50,7 +50,7 @@ func (i *InstructorOpenAI) chat(ctx context.Context, request interface{}, schema
 
 func (i *InstructorOpenAI) chatToolCall(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (string, *openai.ChatCompletionResponse, error) {
 
-	request.Tools = createTools(schema)
+	request.Tools = createOpenAITools(schema)
 
 	resp, err := i.Client.CreateChatCompletion(ctx, *request)
 	if err != nil {

@@ -26,7 +26,7 @@ func chatHandler(i Instructor, ctx context.Context, request interface{}, respons
 			return nil, err
 		}
 
-		text = extractJSON(text)
+		text = extractJSON(&text)
 
 		err = json.Unmarshal([]byte(text), &response)
 		if err != nil {
