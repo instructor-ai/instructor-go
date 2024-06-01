@@ -1,6 +1,6 @@
-# instructor-go
+# instructor-go - Structured LLM Outputs
 
-Instructor is a library that makes it a breeze to work with structured outputs from large language models (LLMs).
+Instructor Go is a library that makes it a breeze to work with structured outputs from large language models (LLMs).
 
 ---
 
@@ -10,7 +10,23 @@ Instructor is a library that makes it a breeze to work with structured outputs f
 [![GitHub issues](https://img.shields.io/github/issues/instructor-ai/instructor-go.svg)](https://github.com/instructor-ai/instructor-go/issues)
 [![Discord](https://img.shields.io/discord/1192334452110659664?label=discord)](https://discord.gg/UD9GPjbs8c)
 
-Built on top of [`invopop/jsonschema`](https://github.com/invopop/jsonschema) and utilizing `jsonschema` Go struct tags (so no changing code logic), it provides a simple, transparent, and user-friendly API to manage validation, retries, and streaming responses. Get ready to supercharge your LLM workflows!
+Built on top of [`invopop/jsonschema`](https://github.com/invopop/jsonschema) and utilizing `jsonschema` Go struct tags (so no changing code logic), it provides a simple and user-friendly API to manage validation, retries, and streaming responses. Get ready to supercharge your LLM workflows!
+
+## Install
+
+Install the package into your code with:
+
+```bash
+go get "github.com/instructor-ai/instructor-go/pkg/instructor"
+```
+
+Import in your code:
+
+```go
+import (
+	"github.com/instructor-ai/instructor-go/pkg/instructor"
+)
+```
 
 ## Example
 
