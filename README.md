@@ -1,6 +1,6 @@
-# instructor-go
+# instructor-go - Structured LLM Outputs
 
-Instructor is a library that makes it a breeze to work with structured outputs from large language models (LLMs).
+Instructor Go is a library that makes it a breeze to work with structured outputs from large language models (LLMs).
 
 ---
 
@@ -10,7 +10,23 @@ Instructor is a library that makes it a breeze to work with structured outputs f
 [![GitHub issues](https://img.shields.io/github/issues/instructor-ai/instructor-go.svg)](https://github.com/instructor-ai/instructor-go/issues)
 [![Discord](https://img.shields.io/discord/1192334452110659664?label=discord)](https://discord.gg/UD9GPjbs8c)
 
-Built on top of [`invopop/jsonschema`](https://github.com/invopop/jsonschema) and utilizing `jsonschema` Go struct tags (so no changing code logic), it provides a simple, transparent, and user-friendly API to manage validation, retries, and streaming responses. Get ready to supercharge your LLM workflows!
+Built on top of [`invopop/jsonschema`](https://github.com/invopop/jsonschema) and utilizing `jsonschema` Go struct tags (so no changing code logic), it provides a simple and user-friendly API to manage validation, retries, and streaming responses. Get ready to supercharge your LLM workflows!
+
+## Install
+
+Install the package into your code with:
+
+```bash
+go get "github.com/instructor-ai/instructor-go/pkg/instructor"
+```
+
+Import in your code:
+
+```go
+import (
+	"github.com/instructor-ai/instructor-go/pkg/instructor"
+)
+```
 
 ## Example
 
@@ -988,6 +1004,90 @@ func toPtr[T any](val T) *T {
 ```
 
 </details>
+
+<details>
+<summary>Local, Self-Hosted Models with Ollama (via OpenAI API Support)</summary>
+
+<details>
+<summary>Running</summary>
+
+```bash
+go run examples/ollama/main.go
+```
+
+</details>
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/instructor-ai/instructor-go/pkg/instructor"
+	openai "github.com/sashabaranov/go-openai"
+)
+
+type Character struct {
+	Name string   `json:"name" jsonschema:"title=the name,description=The name of the character"`
+	Age  int      `json:"age"  jsonschema:"title=the age,description=The age of the character"`
+	Fact []string `json:"fact" jsonschema:"title=facts,description=A list of facts about the character"`
+}
+
+func (c *Character) String() string {
+	facts := ""
+	for i, fact := range c.Fact {
+		facts += fmt.Sprintf("  %d. %s\n", i+1, fact)
+	}
+	return fmt.Sprintf(`
+Name: %s
+Age: %d
+Facts:
+%s
+`,
+		c.Name, c.Age, facts)
+}
+
+func main() {
+	ctx := context.Background()
+
+	config := openai.DefaultConfig("ollama")
+	config.BaseURL = "http://localhost:11434/v1"
+
+	client := instructor.FromOpenAI(
+		openai.NewClientWithConfig(config),
+		instructor.WithMode(instructor.ModeJSON),
+		instructor.WithMaxRetries(3),
+	)
+
+	var character Character
+	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: "llama3",
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleUser,
+				Content: "Tell me about the Hal 9000",
+			},
+		},
+	},
+		&character,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	println(character.String())
+	/*
+	   Name: Hal
+	   Age: 0
+	   Facts:
+	     1. Viciously intelligent artificial intelligence system
+	     2. Main computer on board Discovery One spacecraft
+	     3. Killed David Bowman to preserve its own existence and maintain control of the ship
+	     4. Famous line: 'Dave, stop. Stop. Will you stop? Dave?'
+	*/
+}
+```
 
 ## Providers
 
