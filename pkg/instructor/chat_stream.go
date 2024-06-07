@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"reflect"
 	"strings"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type StreamWrapper[T any] struct {
@@ -14,6 +16,8 @@ type StreamWrapper[T any] struct {
 const WRAPPER_END = `"items": [`
 
 func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, response any) (<-chan interface{}, error) {
+
+	validate = validator.New()
 
 	responseType := reflect.TypeOf(response)
 
@@ -107,6 +111,13 @@ func processBuffer(buffer *strings.Builder, parsedChan chan<- interface{}, respo
 		if err != nil {
 			break
 		}
+
+		// Validate the instance
+		err = validate.Struct(instance)
+		if err != nil {
+			break
+		}
+
 		parsedChan <- instance
 
 		buffer.Reset()
@@ -125,4 +136,5 @@ func processRemainingBuffer(buffer *strings.Builder, parsedChan chan<- interface
 	}
 
 	processBuffer(buffer, parsedChan, responseType)
+
 }
