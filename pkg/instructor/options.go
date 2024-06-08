@@ -26,6 +26,10 @@ func WithMaxRetries(maxRetries int) Options {
 	return Options{MaxRetries: toPtr(maxRetries)}
 }
 
+func WithValidator(withValidator bool) Options {
+	return Options{WithValidator: toPtr(withValidator)}
+}
+
 func mergeOption(old, new Options) Options {
 	if new.Mode != nil {
 		old.Mode = new.Mode
