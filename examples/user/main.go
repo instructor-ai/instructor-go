@@ -10,8 +10,8 @@ import (
 )
 
 type Person struct {
-	Name string `json:"name"          jsonschema:"title=the name,description=The name of the person,example=joe,example=lucy" validate:"required"`
-	Age  int    `json:"age,omitempty" jsonschema:"title=the age,description=The age of the person,example=25,example=67" validate:"gte=0,lte=130"`
+	Name string `json:"name"          jsonschema:"title=the name,description=The name of the person,example=joe,example=lucy"`
+	Age  int    `json:"age,omitempty" jsonschema:"title=the age,description=The age of the person,example=25,example=67"`
 }
 
 func main() {

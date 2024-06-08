@@ -7,9 +7,10 @@ import (
 type InstructorOpenAI struct {
 	*openai.Client
 
-	provider   Provider
-	mode       Mode
-	maxRetries int
+	provider      Provider
+	mode          Mode
+	maxRetries    int
+	withValidator bool
 }
 
 var _ Instructor = &InstructorOpenAI{}
@@ -21,9 +22,10 @@ func FromOpenAI(client *openai.Client, opts ...Options) *InstructorOpenAI {
 	i := &InstructorOpenAI{
 		Client: client,
 
-		provider:   ProviderOpenAI,
-		mode:       *options.Mode,
-		maxRetries: *options.MaxRetries,
+		provider:      ProviderOpenAI,
+		mode:          *options.Mode,
+		maxRetries:    *options.MaxRetries,
+		withValidator: *options.WithValidator,
 	}
 	return i
 }
@@ -36,4 +38,7 @@ func (i *InstructorOpenAI) Mode() Mode {
 }
 func (i *InstructorOpenAI) MaxRetries() int {
 	return i.maxRetries
+}
+func (i *InstructorOpenAI) WithValidator() bool {
+	return i.withValidator
 }

@@ -2,18 +2,20 @@ package instructor
 
 const (
 	DefaultMaxRetries = 3
+	DefaultValidator  = false
 )
 
 type Options struct {
-	Mode       *Mode
-	MaxRetries *int
-
+	Mode          *Mode
+	MaxRetries    *int
+	WithValidator *bool
 	// Provider specific options:
 }
 
 var defaultOptions = Options{
-	Mode:       toPtr(ModeDefault),
-	MaxRetries: toPtr(DefaultMaxRetries),
+	Mode:          toPtr(ModeDefault),
+	MaxRetries:    toPtr(DefaultMaxRetries),
+	WithValidator: toPtr(DefaultValidator),
 }
 
 func WithMode(mode Mode) Options {
@@ -30,6 +32,9 @@ func mergeOption(old, new Options) Options {
 	}
 	if new.MaxRetries != nil {
 		old.MaxRetries = new.MaxRetries
+	}
+	if new.WithValidator != nil {
+		old.WithValidator = new.WithValidator
 	}
 
 	return old

@@ -7,9 +7,10 @@ import (
 type InstructorCohere struct {
 	*cohere.Client
 
-	provider   Provider
-	mode       Mode
-	maxRetries int
+	provider      Provider
+	mode          Mode
+	maxRetries    int
+	withValidator bool
 }
 
 var _ Instructor = &InstructorCohere{}
@@ -38,4 +39,7 @@ func (i *InstructorCohere) Mode() string {
 
 func (i *InstructorCohere) MaxRetries() int {
 	return i.maxRetries
+}
+func (i *InstructorCohere) WithValidator() bool {
+	return i.withValidator
 }

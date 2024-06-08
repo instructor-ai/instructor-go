@@ -42,13 +42,15 @@ func chatHandler(i Instructor, ctx context.Context, request interface{}, respons
 			continue
 		}
 
-		// Validate the response structure against the defined model using the validator
-		err = validate.Struct(response)
+		if i.WithValidator() {
+			// Validate the response structure against the defined model using the validator
+			err = validate.Struct(response)
 
-		if err != nil {
-			// TODO:
-			// add more sophisticated retry logic (send back validator error and parse error for model to fix).
-			continue
+			if err != nil {
+				// TODO:
+				// add more sophisticated retry logic (send back validator error and parse error for model to fix).
+				continue
+			}
 		}
 
 		return resp, nil
