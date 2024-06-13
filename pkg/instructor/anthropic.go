@@ -7,10 +7,10 @@ import (
 type InstructorAnthropic struct {
 	*anthropic.Client
 
-	provider      Provider
-	mode          Mode
-	maxRetries    int
-	withValidator bool
+	provider   Provider
+	mode       Mode
+	maxRetries int
+	validate   bool
 }
 
 var _ Instructor = &InstructorAnthropic{}
@@ -22,10 +22,10 @@ func FromAnthropic(client *anthropic.Client, opts ...Options) *InstructorAnthrop
 	i := &InstructorAnthropic{
 		Client: client,
 
-		provider:      ProviderOpenAI,
-		mode:          *options.Mode,
-		maxRetries:    *options.MaxRetries,
-		withValidator: *options.WithValidator,
+		provider:   ProviderOpenAI,
+		mode:       *options.Mode,
+		maxRetries: *options.MaxRetries,
+		validate:   *options.validate,
 	}
 	return i
 }
@@ -42,5 +42,5 @@ func (i *InstructorAnthropic) Provider() string {
 	return i.provider
 }
 func (i *InstructorAnthropic) WithValidator() bool {
-	return i.withValidator
+	return i.validate
 }

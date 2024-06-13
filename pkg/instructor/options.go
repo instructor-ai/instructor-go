@@ -6,16 +6,16 @@ const (
 )
 
 type Options struct {
-	Mode          *Mode
-	MaxRetries    *int
-	WithValidator *bool
+	Mode       *Mode
+	MaxRetries *int
+	validate   *bool
 	// Provider specific options:
 }
 
 var defaultOptions = Options{
-	Mode:          toPtr(ModeDefault),
-	MaxRetries:    toPtr(DefaultMaxRetries),
-	WithValidator: toPtr(DefaultValidator),
+	Mode:       toPtr(ModeDefault),
+	MaxRetries: toPtr(DefaultMaxRetries),
+	validate:   toPtr(DefaultValidator),
 }
 
 func WithMode(mode Mode) Options {
@@ -26,8 +26,8 @@ func WithMaxRetries(maxRetries int) Options {
 	return Options{MaxRetries: toPtr(maxRetries)}
 }
 
-func WithValidator(withValidator bool) Options {
-	return Options{WithValidator: toPtr(withValidator)}
+func WithValidator(validate bool) Options {
+	return Options{validate: toPtr(validate)}
 }
 
 func mergeOption(old, new Options) Options {
@@ -37,8 +37,8 @@ func mergeOption(old, new Options) Options {
 	if new.MaxRetries != nil {
 		old.MaxRetries = new.MaxRetries
 	}
-	if new.WithValidator != nil {
-		old.WithValidator = new.WithValidator
+	if new.validate != nil {
+		old.validate = new.validate
 	}
 
 	return old

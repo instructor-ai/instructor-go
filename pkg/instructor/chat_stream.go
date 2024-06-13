@@ -40,13 +40,13 @@ func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, r
 		return nil, err
 	}
 
-	withValidator := i.WithValidator()
-	parsedChan := parseStream(ctx, ch, withValidator, responseType)
+	shouldValidate := i.WithValidator()
+	parsedChan := parseStream(ctx, ch, shouldValidate, responseType)
 
 	return parsedChan, nil
 }
 
-func parseStream(ctx context.Context, ch <-chan string, withValidator bool, responseType reflect.Type) <-chan interface{} {
+func parseStream(ctx context.Context, ch <-chan string, shouldValidate bool, responseType reflect.Type) <-chan interface{} {
 
 	parsedChan := make(chan any)
 
@@ -63,7 +63,7 @@ func parseStream(ctx context.Context, ch <-chan string, withValidator bool, resp
 			case text, ok := <-ch:
 				if !ok {
 					// Stream closed
-					processRemainingBuffer(buffer, parsedChan, withValidator, responseType)
+					processRemainingBuffer(buffer, parsedChan, shouldValidate, responseType)
 					return
 				}
 
@@ -74,7 +74,7 @@ func parseStream(ctx context.Context, ch <-chan string, withValidator bool, resp
 					inArray = startArray(buffer)
 				}
 
-				processBuffer(buffer, parsedChan, withValidator, responseType)
+				processBuffer(buffer, parsedChan, shouldValidate, responseType)
 			}
 		}
 	}()
@@ -98,7 +98,7 @@ func startArray(buffer *strings.Builder) bool {
 	return true
 }
 
-func processBuffer(buffer *strings.Builder, parsedChan chan<- interface{}, withValidator bool, responseType reflect.Type) {
+func processBuffer(buffer *strings.Builder, parsedChan chan<- interface{}, shouldValidate bool, responseType reflect.Type) {
 
 	data := buffer.String()
 
@@ -113,7 +113,7 @@ func processBuffer(buffer *strings.Builder, parsedChan chan<- interface{}, withV
 			break
 		}
 
-		if withValidator {
+		if shouldValidate {
 			// Validate the instance
 			err = validate.Struct(instance)
 			if err != nil {
@@ -128,7 +128,7 @@ func processBuffer(buffer *strings.Builder, parsedChan chan<- interface{}, withV
 	}
 }
 
-func processRemainingBuffer(buffer *strings.Builder, parsedChan chan<- interface{}, withValidator bool, responseType reflect.Type) {
+func processRemainingBuffer(buffer *strings.Builder, parsedChan chan<- interface{}, shouldValidate bool, responseType reflect.Type) {
 
 	data := buffer.String()
 
@@ -138,6 +138,6 @@ func processRemainingBuffer(buffer *strings.Builder, parsedChan chan<- interface
 		data = data[:idx]
 	}
 
-	processBuffer(buffer, parsedChan, withValidator, responseType)
+	processBuffer(buffer, parsedChan, shouldValidate, responseType)
 
 }
