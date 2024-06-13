@@ -17,8 +17,6 @@ const WRAPPER_END = `"items": [`
 
 func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, response any) (<-chan interface{}, error) {
 
-	validate = validator.New()
-
 	responseType := reflect.TypeOf(response)
 
 	streamWrapperType := reflect.StructOf([]reflect.StructField{
@@ -40,7 +38,11 @@ func chatStreamHandler(i Instructor, ctx context.Context, request interface{}, r
 		return nil, err
 	}
 
-	shouldValidate := i.WithValidator()
+	shouldValidate := i.Validate()
+	if shouldValidate {
+		validate = validator.New()
+	}
+
 	parsedChan := parseStream(ctx, ch, shouldValidate, responseType)
 
 	return parsedChan, nil

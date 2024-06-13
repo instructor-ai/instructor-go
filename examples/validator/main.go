@@ -46,7 +46,7 @@ func main() {
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
 		instructor.WithMode(instructor.ModeJSON),
 		instructor.WithMaxRetries(3),
-		instructor.WithValidator(true),
+		instructor.WithValidation(true),
 	)
 
 	var user User

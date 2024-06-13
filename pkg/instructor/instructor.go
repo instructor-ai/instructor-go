@@ -12,7 +12,7 @@ type Instructor interface {
 	Provider() Provider
 	Mode() Mode
 	MaxRetries() int
-	WithValidator() bool
+	Validate() bool
 
 	// Chat / Messages
 

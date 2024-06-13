@@ -13,8 +13,6 @@ func chatHandler(i Instructor, ctx context.Context, request interface{}, respons
 
 	var err error
 
-	validate = validator.New()
-
 	t := reflect.TypeOf(response)
 
 	schema, err := NewSchema(t)
@@ -42,7 +40,8 @@ func chatHandler(i Instructor, ctx context.Context, request interface{}, respons
 			continue
 		}
 
-		if i.WithValidator() {
+		if i.Validate() {
+			validate = validator.New()
 			// Validate the response structure against the defined model using the validator
 			err = validate.Struct(response)
 

@@ -39,6 +39,6 @@ func (i *InstructorOpenAI) Mode() Mode {
 func (i *InstructorOpenAI) MaxRetries() int {
 	return i.maxRetries
 }
-func (i *InstructorOpenAI) WithValidator() bool {
+func (i *InstructorOpenAI) Validate() bool {
 	return i.validate
 }

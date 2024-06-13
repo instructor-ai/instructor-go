@@ -40,6 +40,6 @@ func (i *InstructorCohere) Mode() string {
 func (i *InstructorCohere) MaxRetries() int {
 	return i.maxRetries
 }
-func (i *InstructorCohere) WithValidator() bool {
+func (i *InstructorCohere) Validate() bool {
 	return i.validate
 }

@@ -26,7 +26,7 @@ func WithMaxRetries(maxRetries int) Options {
 	return Options{MaxRetries: toPtr(maxRetries)}
 }
 
-func WithValidator(validate bool) Options {
+func WithValidation(validate bool) Options {
 	return Options{validate: toPtr(validate)}
 }
 

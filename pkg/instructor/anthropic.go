@@ -41,6 +41,6 @@ func (i *InstructorAnthropic) Mode() string {
 func (i *InstructorAnthropic) Provider() string {
 	return i.provider
 }
-func (i *InstructorAnthropic) WithValidator() bool {
+func (i *InstructorAnthropic) Validate() bool {
 	return i.validate
 }
