@@ -10,6 +10,7 @@ type InstructorOpenAI struct {
 	provider   Provider
 	mode       Mode
 	maxRetries int
+	validate   bool
 }
 
 var _ Instructor = &InstructorOpenAI{}
@@ -24,6 +25,7 @@ func FromOpenAI(client *openai.Client, opts ...Options) *InstructorOpenAI {
 		provider:   ProviderOpenAI,
 		mode:       *options.Mode,
 		maxRetries: *options.MaxRetries,
+		validate:   *options.validate,
 	}
 	return i
 }
@@ -36,4 +38,7 @@ func (i *InstructorOpenAI) Mode() Mode {
 }
 func (i *InstructorOpenAI) MaxRetries() int {
 	return i.maxRetries
+}
+func (i *InstructorOpenAI) Validate() bool {
+	return i.validate
 }

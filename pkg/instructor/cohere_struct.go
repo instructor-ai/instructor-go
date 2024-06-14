@@ -10,6 +10,7 @@ type InstructorCohere struct {
 	provider   Provider
 	mode       Mode
 	maxRetries int
+	validate   bool
 }
 
 var _ Instructor = &InstructorCohere{}
@@ -38,4 +39,7 @@ func (i *InstructorCohere) Mode() string {
 
 func (i *InstructorCohere) MaxRetries() int {
 	return i.maxRetries
+}
+func (i *InstructorCohere) Validate() bool {
+	return i.validate
 }

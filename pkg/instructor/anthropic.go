@@ -10,6 +10,7 @@ type InstructorAnthropic struct {
 	provider   Provider
 	mode       Mode
 	maxRetries int
+	validate   bool
 }
 
 var _ Instructor = &InstructorAnthropic{}
@@ -24,6 +25,7 @@ func FromAnthropic(client *anthropic.Client, opts ...Options) *InstructorAnthrop
 		provider:   ProviderOpenAI,
 		mode:       *options.Mode,
 		maxRetries: *options.MaxRetries,
+		validate:   *options.validate,
 	}
 	return i
 }
@@ -38,4 +40,7 @@ func (i *InstructorAnthropic) Mode() string {
 
 func (i *InstructorAnthropic) Provider() string {
 	return i.provider
+}
+func (i *InstructorAnthropic) Validate() bool {
+	return i.validate
 }
