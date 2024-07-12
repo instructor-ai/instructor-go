@@ -13,7 +13,10 @@ func (i *InstructorAnthropic) CreateMessages(ctx context.Context, request anthro
 
 	resp, err := chatHandler(i, ctx, request, responseType)
 	if err != nil {
-		return anthropic.MessagesResponse{}, err
+		if resp == nil {
+			return anthropic.MessagesResponse{}, err
+		}
+		return *nilAnthropicRespWithUsage(resp.(*anthropic.MessagesResponse)), err
 	}
 
 	response = *(resp.(*anthropic.MessagesResponse))
@@ -68,13 +71,13 @@ func (i *InstructorAnthropic) completionToolCall(ctx context.Context, request *a
 
 		toolInput, err := json.Marshal(c.Input)
 		if err != nil {
-			return "", nil, err
+			return "", nilAnthropicRespWithUsage(&resp), err
 		}
 		// TODO: handle more than 1 tool use
 		return string(toolInput), &resp, nil
 	}
 
-	return "", nil, errors.New("more than 1 tool response at a time is not implemented")
+	return "", nilAnthropicRespWithUsage(&resp), errors.New("more than 1 tool response at a time is not implemented")
 
 }
 
@@ -102,4 +105,23 @@ Make sure to return an instance of the JSON, not the schema itself.
 	text := resp.Content[0].Text
 
 	return *text, &resp, nil
+}
+
+func (i *InstructorAnthropic) EmptyResponseWithUsage(usage *UsageSum) interface{} {
+	return &anthropic.MessagesResponse{
+		Usage: anthropic.MessagesUsage{
+			InputTokens:  usage.InputTokens,
+			OutputTokens: usage.OutputTokens,
+		},
+	}
+}
+
+func nilAnthropicRespWithUsage(resp *anthropic.MessagesResponse) *anthropic.MessagesResponse {
+	if resp == nil {
+		return nil
+	}
+
+	return &anthropic.MessagesResponse{
+		Usage: resp.Usage,
+	}
 }

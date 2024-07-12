@@ -17,6 +17,7 @@ func (i *InstructorCohere) Chat(
 
 	resp, err := chatHandler(i, ctx, request, response)
 	if err != nil {
+		// TODO: propagate usage for failed calls when tool calls are implemented
 		return nil, err
 	}
 
@@ -78,6 +79,11 @@ func (i *InstructorCohere) addOrConcatJSONSystemPrompt(request *cohere.ChatReque
 	} else {
 		request.Preamble = toPtr(*request.Preamble + "\n" + schemaPrompt)
 	}
+}
+
+func (i *InstructorCohere) EmptyResponseWithUsage(usage *UsageSum) interface{} {
+	// TODO: implement
+	return nil
 }
 
 func createCohereTools(schema *Schema) *cohere.Tool {

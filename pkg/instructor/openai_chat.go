@@ -17,7 +17,10 @@ func (i *InstructorOpenAI) CreateChatCompletion(
 
 	resp, err := chatHandler(i, ctx, request, responseType)
 	if err != nil {
-		return openai.ChatCompletionResponse{}, err
+		if resp == nil {
+			return openai.ChatCompletionResponse{}, err
+		}
+		return *nilOpenaiRespWithUsage(resp.(*openai.ChatCompletionResponse)), err
 	}
 
 	response = *(resp.(*openai.ChatCompletionResponse))
@@ -69,7 +72,7 @@ func (i *InstructorOpenAI) chatToolCall(ctx context.Context, request *openai.Cha
 	numTools := len(toolCalls)
 
 	if numTools < 1 {
-		return "", nil, errors.New("recieved no tool calls from model, expected at least 1")
+		return "", nilOpenaiRespWithUsage(&resp), errors.New("received no tool calls from model, expected at least 1")
 	}
 
 	if numTools == 1 {
@@ -84,14 +87,14 @@ func (i *InstructorOpenAI) chatToolCall(ctx context.Context, request *openai.Cha
 		var jsonObj map[string]interface{}
 		err = json.Unmarshal([]byte(toolCall.Function.Arguments), &jsonObj)
 		if err != nil {
-			return "", nil, err
+			return "", nilOpenaiRespWithUsage(&resp), err
 		}
 		jsonArray[i] = jsonObj
 	}
 
 	resultJSON, err := json.Marshal(jsonArray)
 	if err != nil {
-		return "", nil, err
+		return "", nilOpenaiRespWithUsage(&resp), err
 	}
 
 	return string(resultJSON), &resp, nil
@@ -128,6 +131,16 @@ func (i *InstructorOpenAI) chatJSONSchema(ctx context.Context, request *openai.C
 	return text, &resp, nil
 }
 
+func (i *InstructorOpenAI) EmptyResponseWithUsage(usage *UsageSum) interface{} {
+	return &openai.ChatCompletionResponse{
+		Usage: openai.Usage{
+			PromptTokens:     usage.InputTokens,
+			CompletionTokens: usage.OutputTokens,
+			TotalTokens:      usage.TotalTokens,
+		},
+	}
+}
+
 func createJSONMessage(schema *Schema) *openai.ChatCompletionMessage {
 	message := fmt.Sprintf(`
 Please respond with JSON in the following JSON schema:
@@ -143,4 +156,14 @@ Make sure to return an instance of the JSON, not the schema itself
 	}
 
 	return msg
+}
+
+func nilOpenaiRespWithUsage(resp *openai.ChatCompletionResponse) *openai.ChatCompletionResponse {
+	if resp == nil {
+		return nil
+	}
+
+	return &openai.ChatCompletionResponse{
+		Usage: resp.Usage,
+	}
 }
