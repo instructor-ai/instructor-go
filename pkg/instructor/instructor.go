@@ -29,4 +29,11 @@ type Instructor interface {
 		request interface{},
 		schema *Schema,
 	) (<-chan string, error)
+
+	// Usage counting
+
+	emptyResponseWithUsageSum(usage *UsageSum) interface{}
+	emptyResponseWithResponseUsage(response interface{}) interface{}
+	addUsageSumToResponse(response interface{}, usage *UsageSum) (interface{}, error)
+	countUsageFromResponse(response interface{}, usage *UsageSum) *UsageSum
 }

@@ -9,6 +9,12 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+type UsageSum struct {
+	InputTokens  int
+	OutputTokens int
+	TotalTokens  int
+}
+
 func chatHandler(i Instructor, ctx context.Context, request interface{}, response any) (interface{}, error) {
 
 	var err error
@@ -20,12 +26,15 @@ func chatHandler(i Instructor, ctx context.Context, request interface{}, respons
 		return nil, err
 	}
 
+	// keep a running total of usage
+	usage := &UsageSum{}
+
 	for attempt := 0; attempt < i.MaxRetries(); attempt++ {
 
 		text, resp, err := i.chat(ctx, request, schema)
 		if err != nil {
 			// no retry on non-marshalling/validation errors
-			return nil, err
+			return i.emptyResponseWithResponseUsage(resp), err
 		}
 
 		text = extractJSON(&text)
@@ -37,6 +46,8 @@ func chatHandler(i Instructor, ctx context.Context, request interface{}, respons
 			//
 			// Currently, its just recalling with no new information
 			// or attempt to fix the error with the last generated JSON
+
+			i.countUsageFromResponse(resp, usage)
 			continue
 		}
 
@@ -48,12 +59,14 @@ func chatHandler(i Instructor, ctx context.Context, request interface{}, respons
 			if err != nil {
 				// TODO:
 				// add more sophisticated retry logic (send back validator error and parse error for model to fix).
+
+				i.countUsageFromResponse(resp, usage)
 				continue
 			}
 		}
 
-		return resp, nil
+		return i.addUsageSumToResponse(resp, usage)
 	}
 
-	return nil, errors.New("hit max retry attempts")
+	return i.emptyResponseWithUsageSum(usage), errors.New("hit max retry attempts")
 }

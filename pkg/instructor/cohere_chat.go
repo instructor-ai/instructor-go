@@ -17,7 +17,10 @@ func (i *InstructorCohere) Chat(
 
 	resp, err := chatHandler(i, ctx, request, response)
 	if err != nil {
-		return nil, err
+		if resp == nil {
+			return &cohere.NonStreamedChatResponse{}, err
+		}
+		return nilCohereRespWithUsage(resp.(*cohere.NonStreamedChatResponse)), err
 	}
 
 	return resp.(*cohere.NonStreamedChatResponse), nil
@@ -80,6 +83,52 @@ func (i *InstructorCohere) addOrConcatJSONSystemPrompt(request *cohere.ChatReque
 	}
 }
 
+func (i *InstructorCohere) emptyResponseWithUsageSum(usage *UsageSum) interface{} {
+	return &cohere.NonStreamedChatResponse{
+		Meta: &cohere.ApiMeta{
+			Tokens: &cohere.ApiMetaTokens{
+				InputTokens:  toPtr(float64(usage.InputTokens)),
+				OutputTokens: toPtr(float64(usage.OutputTokens)),
+			},
+		},
+	}
+}
+
+func (i *InstructorCohere) emptyResponseWithResponseUsage(response interface{}) interface{} {
+	resp, ok := response.(*cohere.NonStreamedChatResponse)
+	if !ok || resp == nil {
+		return nil
+	}
+
+	return &cohere.NonStreamedChatResponse{
+		Meta: resp.Meta,
+	}
+}
+
+func (i *InstructorCohere) addUsageSumToResponse(response interface{}, usage *UsageSum) (interface{}, error) {
+	resp, ok := response.(*cohere.NonStreamedChatResponse)
+	if !ok {
+		return response, fmt.Errorf("internal type error: expected *cohere.NonStreamedChatResponse, got %T", response)
+	}
+
+	*resp.Meta.Tokens.InputTokens += float64(usage.InputTokens)
+	*resp.Meta.Tokens.OutputTokens += float64(usage.OutputTokens)
+
+	return response, nil
+}
+
+func (i *InstructorCohere) countUsageFromResponse(response interface{}, usage *UsageSum) *UsageSum {
+	resp, ok := response.(*cohere.NonStreamedChatResponse)
+	if !ok {
+		return usage
+	}
+
+	usage.InputTokens += int(*resp.Meta.Tokens.InputTokens)
+	usage.OutputTokens += int(*resp.Meta.Tokens.OutputTokens)
+
+	return usage
+}
+
 func createCohereTools(schema *Schema) *cohere.Tool {
 
 	tool := &cohere.Tool{
@@ -97,4 +146,14 @@ func createCohereTools(schema *Schema) *cohere.Tool {
 	}
 
 	return tool
+}
+
+func nilCohereRespWithUsage(resp *cohere.NonStreamedChatResponse) *cohere.NonStreamedChatResponse {
+	if resp == nil {
+		return nil
+	}
+
+	return &cohere.NonStreamedChatResponse{
+		Meta: resp.Meta,
+	}
 }

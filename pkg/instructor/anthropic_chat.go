@@ -13,7 +13,10 @@ func (i *InstructorAnthropic) CreateMessages(ctx context.Context, request anthro
 
 	resp, err := chatHandler(i, ctx, request, responseType)
 	if err != nil {
-		return anthropic.MessagesResponse{}, err
+		if resp == nil {
+			return anthropic.MessagesResponse{}, err
+		}
+		return *nilAnthropicRespWithUsage(resp.(*anthropic.MessagesResponse)), err
 	}
 
 	response = *(resp.(*anthropic.MessagesResponse))
@@ -68,13 +71,13 @@ func (i *InstructorAnthropic) completionToolCall(ctx context.Context, request *a
 
 		toolInput, err := json.Marshal(c.Input)
 		if err != nil {
-			return "", nil, err
+			return "", nilAnthropicRespWithUsage(&resp), err
 		}
 		// TODO: handle more than 1 tool use
 		return string(toolInput), &resp, nil
 	}
 
-	return "", nil, errors.New("more than 1 tool response at a time is not implemented")
+	return "", nilAnthropicRespWithUsage(&resp), errors.New("more than 1 tool response at a time is not implemented")
 
 }
 
@@ -102,4 +105,58 @@ Make sure to return an instance of the JSON, not the schema itself.
 	text := resp.Content[0].Text
 
 	return *text, &resp, nil
+}
+
+func (i *InstructorAnthropic) emptyResponseWithUsageSum(usage *UsageSum) interface{} {
+	return &anthropic.MessagesResponse{
+		Usage: anthropic.MessagesUsage{
+			InputTokens:  usage.InputTokens,
+			OutputTokens: usage.OutputTokens,
+		},
+	}
+}
+
+func (i *InstructorAnthropic) emptyResponseWithResponseUsage(response interface{}) interface{} {
+	resp, ok := response.(*anthropic.MessagesResponse)
+	if !ok || resp == nil {
+		return nil
+	}
+
+	return &anthropic.MessagesResponse{
+		Usage: resp.Usage,
+	}
+}
+
+func (i *InstructorAnthropic) addUsageSumToResponse(response interface{}, usage *UsageSum) (interface{}, error) {
+	resp, ok := response.(*anthropic.MessagesResponse)
+	if !ok {
+		return response, fmt.Errorf("internal type error: expected *anthropic.MessagesResponse, got %T", response)
+	}
+
+	resp.Usage.InputTokens += usage.InputTokens
+	resp.Usage.OutputTokens += usage.OutputTokens
+
+	return response, nil
+}
+
+func (i *InstructorAnthropic) countUsageFromResponse(response interface{}, usage *UsageSum) *UsageSum {
+	resp, ok := response.(*anthropic.MessagesResponse)
+	if !ok {
+		return usage
+	}
+
+	usage.InputTokens += resp.Usage.InputTokens
+	usage.OutputTokens += resp.Usage.OutputTokens
+
+	return usage
+}
+
+func nilAnthropicRespWithUsage(resp *anthropic.MessagesResponse) *anthropic.MessagesResponse {
+	if resp == nil {
+		return nil
+	}
+
+	return &anthropic.MessagesResponse{
+		Usage: resp.Usage,
+	}
 }
