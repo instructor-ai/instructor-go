@@ -28,6 +28,19 @@ import (
 )
 ```
 
+## LLM Providers
+
+Instructor Go supports the following LLM provider APIs:
+* OpenAI
+* Anthropic
+* Cohere
+
+### Usage (Token Counts)
+
+These provider APIs include usage data (input and output token counts) in their responses, which Instructor Go captures and returns in the response object.
+
+Usage is summed for retries. If multiple requests are needed to get a valid response, the usage from all requests is summed and returned.
+
 ## Example
 
 As shown in the example below, by adding extra metadata to each struct field (via `jsonschema` tag) we want the model to be made aware of:
