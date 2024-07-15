@@ -13,7 +13,6 @@ type Instructor interface {
 	Mode() Mode
 	MaxRetries() int
 	Validate() bool
-	EmptyResponseWithUsage(usage *UsageSum) interface{}
 
 	// Chat / Messages
 
@@ -30,4 +29,11 @@ type Instructor interface {
 		request interface{},
 		schema *Schema,
 	) (<-chan string, error)
+
+	// Usage counting
+
+	emptyResponseWithUsageSum(usage *UsageSum) interface{}
+	emptyResponseWithResponseUsage(response interface{}) interface{}
+	addUsageSumToResponse(response interface{}, usage *UsageSum) (interface{}, error)
+	countUsageFromResponse(response interface{}, usage *UsageSum) *UsageSum
 }

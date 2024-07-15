@@ -131,7 +131,7 @@ func (i *InstructorOpenAI) chatJSONSchema(ctx context.Context, request *openai.C
 	return text, &resp, nil
 }
 
-func (i *InstructorOpenAI) EmptyResponseWithUsage(usage *UsageSum) interface{} {
+func (i *InstructorOpenAI) emptyResponseWithUsageSum(usage *UsageSum) interface{} {
 	return &openai.ChatCompletionResponse{
 		Usage: openai.Usage{
 			PromptTokens:     usage.InputTokens,
@@ -139,6 +139,43 @@ func (i *InstructorOpenAI) EmptyResponseWithUsage(usage *UsageSum) interface{} {
 			TotalTokens:      usage.TotalTokens,
 		},
 	}
+}
+
+func (i *InstructorOpenAI) emptyResponseWithResponseUsage(response interface{}) interface{} {
+	resp, ok := response.(*openai.ChatCompletionResponse)
+	if !ok || resp == nil {
+		return nil
+	}
+
+	return &openai.ChatCompletionResponse{
+		Usage: resp.Usage,
+	}
+}
+
+func (i *InstructorOpenAI) addUsageSumToResponse(response interface{}, usage *UsageSum) (interface{}, error) {
+	resp, ok := response.(*openai.ChatCompletionResponse)
+	if !ok {
+		return response, fmt.Errorf("internal type error: expected *openai.ChatCompletionResponse, got %T", response)
+	}
+
+	resp.Usage.PromptTokens += usage.InputTokens
+	resp.Usage.CompletionTokens += usage.OutputTokens
+	resp.Usage.TotalTokens += usage.TotalTokens
+
+	return response, nil
+}
+
+func (i *InstructorOpenAI) countUsageFromResponse(response interface{}, usage *UsageSum) *UsageSum {
+	resp, ok := response.(*openai.ChatCompletionResponse)
+	if !ok {
+		return usage
+	}
+
+	usage.InputTokens += resp.Usage.PromptTokens
+	usage.OutputTokens += resp.Usage.CompletionTokens
+	usage.TotalTokens += resp.Usage.TotalTokens
+
+	return usage
 }
 
 func createJSONMessage(schema *Schema) *openai.ChatCompletionMessage {

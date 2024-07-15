@@ -107,13 +107,48 @@ Make sure to return an instance of the JSON, not the schema itself.
 	return *text, &resp, nil
 }
 
-func (i *InstructorAnthropic) EmptyResponseWithUsage(usage *UsageSum) interface{} {
+func (i *InstructorAnthropic) emptyResponseWithUsageSum(usage *UsageSum) interface{} {
 	return &anthropic.MessagesResponse{
 		Usage: anthropic.MessagesUsage{
 			InputTokens:  usage.InputTokens,
 			OutputTokens: usage.OutputTokens,
 		},
 	}
+}
+
+func (i *InstructorAnthropic) emptyResponseWithResponseUsage(response interface{}) interface{} {
+	resp, ok := response.(*anthropic.MessagesResponse)
+	if !ok || resp == nil {
+		return nil
+	}
+
+	return &anthropic.MessagesResponse{
+		Usage: resp.Usage,
+	}
+}
+
+func (i *InstructorAnthropic) addUsageSumToResponse(response interface{}, usage *UsageSum) (interface{}, error) {
+	resp, ok := response.(*anthropic.MessagesResponse)
+	if !ok {
+		return response, fmt.Errorf("internal type error: expected *anthropic.MessagesResponse, got %T", response)
+	}
+
+	resp.Usage.InputTokens += usage.InputTokens
+	resp.Usage.OutputTokens += usage.OutputTokens
+
+	return response, nil
+}
+
+func (i *InstructorAnthropic) countUsageFromResponse(response interface{}, usage *UsageSum) *UsageSum {
+	resp, ok := response.(*anthropic.MessagesResponse)
+	if !ok {
+		return usage
+	}
+
+	usage.InputTokens += resp.Usage.InputTokens
+	usage.OutputTokens += resp.Usage.OutputTokens
+
+	return usage
 }
 
 func nilAnthropicRespWithUsage(resp *anthropic.MessagesResponse) *anthropic.MessagesResponse {
