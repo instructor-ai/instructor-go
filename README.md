@@ -1088,6 +1088,7 @@ func main() {
 	*/
 }
 ```
+</details>
 
 ## Providers
 
