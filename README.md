@@ -1091,6 +1091,82 @@ func main() {
 
 ## Providers
 
+Instructor Go supports the following LLM provider APIs:
 - [OpenAI](https://github.com/sashabaranov/go-openai)
 - [Anthropic](https://github.com/liushuangls/go-anthropic)
 - [Cohere](github.com/cohere-ai/cohere-go)
+
+### Usage (token counts)
+
+These provider APIs include usage data (input and output token counts) in their responses, which Instructor Go captures and returns in the response object.
+
+Usage is summed for retries. If multiple requests are needed to get a valid response, the usage from all requests is summed and returned. Even if Instructor fails to get a valid response after the maximum number of retries, the usage sum from all attempts is still returned.
+
+### How to view usage data
+
+<details>
+<summary>Usage counting with OpenAI</summary>
+
+```go
+resp, err := client.CreateChatCompletion(
+    ctx,
+    openai.ChatCompletionRequest{
+        Model: openai.GPT4o,
+        Messages: []openai.ChatCompletionMessage{
+            {
+                Role:    openai.ChatMessageRoleUser,
+                Content: "Extract Robby is 22 years old.",
+            },
+        },
+    },
+    &person,
+)
+
+fmt.Printf("Input tokens: %d\n", resp.Usage.PromptTokens)
+fmt.Printf("Output tokens: %d\n", resp.Usage.CompletionTokens)
+fmt.Printf("Total tokens: %d\n", resp.Usage.TotalTokens)
+```
+
+</details>
+
+<details>
+<summary>Usage counting with Anthropic</summary>
+
+```go
+resp, err := client.CreateMessages(
+    ctx,
+    anthropic.MessagesRequest{
+        Model: anthropic.ModelClaude3Haiku20240307,
+        Messages: []anthropic.Message{
+            anthropic.NewUserTextMessage("Classify the following support ticket: My account is locked and I can't access my billing info."),
+        },
+		MaxTokens: 500,
+    },
+    &prediction,
+)
+
+fmt.Printf("Input tokens: %d\n", resp.Usage.InputTokens)
+fmt.Printf("Output tokens: %d\n", resp.Usage.OutputTokens)
+```
+
+</details>
+
+<details>
+<summary>Usage counting with Cohere</summary>
+
+```go
+resp, err := client.Chat(
+    ctx,
+    &cohere.ChatRequest{
+        Model: "command-r-plus",
+        Message: "Tell me about the history of artificial intelligence up to year 2000",
+        MaxTokens: 2500,
+    },
+    &historicalFact,
+)
+
+fmt.Printf("Input tokens: %d\n", int(*resp.Meta.Tokens.InputTokens))
+fmt.Printf("Output tokens: %d\n", int(*resp.Meta.Tokens.OutputTokens))
+```
+
+</details>
