@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/invopop/jsonschema"
 	openai "github.com/sashabaranov/go-openai"
+	openaiJSONSchema "github.com/sashabaranov/go-openai/jsonschema"
 )
 
 func (i *InstructorOpenAI) CreateChatCompletion(
@@ -44,6 +46,8 @@ func (i *InstructorOpenAI) chat(ctx context.Context, request interface{}, schema
 		return i.chatToolCall(ctx, &req, schema)
 	case ModeJSON:
 		return i.chatJSON(ctx, &req, schema)
+	case ModeJSONStrict:
+		return i.chatJSONStrict(ctx, &req, schema)
 	case ModeJSONSchema:
 		return i.chatJSONSchema(ctx, &req, schema)
 	default:
@@ -117,6 +121,26 @@ func (i *InstructorOpenAI) chatJSON(ctx context.Context, request *openai.ChatCom
 	return text, &resp, nil
 }
 
+func (i *InstructorOpenAI) chatJSONStrict(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (string, *openai.ChatCompletionResponse, error) {
+
+	request.Messages = prepend(request.Messages, *createJSONMessage(schema))
+
+	// Set strict JSON mode
+	request.ResponseFormat = &openai.ChatCompletionResponseFormat{
+		Type:       openai.ChatCompletionResponseFormatTypeJSONObject,
+		JSONSchema: convertToChatCompletionResponseFormatJSONSchema(schema, true),
+	}
+
+	resp, err := i.Client.CreateChatCompletion(ctx, *request)
+	if err != nil {
+		return "", nil, err
+	}
+
+	text := resp.Choices[0].Message.Content
+
+	return text, &resp, nil
+}
+
 func (i *InstructorOpenAI) chatJSONSchema(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (string, *openai.ChatCompletionResponse, error) {
 
 	request.Messages = prepend(request.Messages, *createJSONMessage(schema))
@@ -129,6 +153,48 @@ func (i *InstructorOpenAI) chatJSONSchema(ctx context.Context, request *openai.C
 	text := resp.Choices[0].Message.Content
 
 	return text, &resp, nil
+}
+
+func convertSchemaToDefinition(schema *jsonschema.Schema) *openaiJSONSchema.Definition {
+	definition := openaiJSONSchema.Definition{
+		Type:        openaiJSONSchema.DataType(schema.Type),
+		Description: schema.Description,
+		Required:    schema.Required,
+	}
+
+	if len(schema.Enum) > 0 {
+		definition.Enum = make([]string, len(schema.Enum))
+		for i, v := range schema.Enum {
+			definition.Enum[i] = v.(string)
+		}
+	}
+
+	if schema.Properties != nil {
+		definition.Properties = make(map[string]openaiJSONSchema.Definition)
+		for el := schema.Properties.Oldest(); el != nil; el = el.Next() {
+			k, prop := el.Key, el.Value
+			definition.Properties[k] = *convertSchemaToDefinition(prop)
+		}
+	}
+
+	if schema.Items != nil {
+		definition.Items = convertSchemaToDefinition(schema.Items)
+	}
+
+	if schema.AdditionalProperties != nil {
+		definition.AdditionalProperties = convertSchemaToDefinition(schema.AdditionalProperties)
+	}
+
+	return &definition
+}
+
+func convertToChatCompletionResponseFormatJSONSchema(schema *Schema, strict bool) *openai.ChatCompletionResponseFormatJSONSchema {
+	return &openai.ChatCompletionResponseFormatJSONSchema{
+		Name:        schema.Name,
+		Description: schema.Description,
+		Schema:      *convertSchemaToDefinition(schema.Schema),
+		Strict:      strict,
+	}
 }
 
 func (i *InstructorOpenAI) emptyResponseWithUsageSum(usage *UsageSum) interface{} {

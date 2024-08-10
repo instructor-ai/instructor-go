@@ -7,7 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.21.0
 	github.com/invopop/jsonschema v0.12.0
 	github.com/liushuangls/go-anthropic/v2 v2.1.0
-	github.com/sashabaranov/go-openai v1.24.1
+	github.com/sashabaranov/go-openai v1.28.1
 )
 
 require (

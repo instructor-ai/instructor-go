@@ -11,6 +11,7 @@ type Schema struct {
 	*jsonschema.Schema
 	String string
 
+	Name      string
 	Functions []FunctionDefinition
 }
 
@@ -40,6 +41,7 @@ func NewSchema(t reflect.Type) (*Schema, error) {
 		Schema: schema,
 		String: string(str),
 
+		Name:      t.Name(),
 		Functions: funcs,
 	}
 

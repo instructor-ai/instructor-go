@@ -298,14 +298,14 @@ func assert(condition bool, message string) {
 <details>
 <summary>Images with OpenAI</summary>
 
-![List of movies](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png)
+![List of movies](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/openai/books.png)
 
 <details>
 <summary>Running</summary>
 
 ```bash
 export OPENAI_API_KEY=<Your OpenAI API Key>
-go run examples/images/openai/main.go
+go run examples/vision/openai/main.go
 ```
 
 </details>
@@ -349,7 +349,7 @@ func main() {
 		instructor.WithMaxRetries(3),
 	)
 
-	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png"
+	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/openai/books.png"
 
 	var bookCatalog BookCatalog
 	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
@@ -437,14 +437,14 @@ func main() {
 <details>
 <summary>Images with Anthropic</summary>
 
-![List of books](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.png)
+![List of books](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/anthropic/movies.png)
 
 <details>
 <summary>Running</summary>
 
 ```bash
 export ANTHROPIC_API_KEY=<Your Anthropic API Key>
-go run examples/images/anthropic/main.go
+go run examples/vision/anthropic/main.go
 ```
 
 </details>
@@ -493,7 +493,7 @@ func main() {
 		instructor.WithMaxRetries(3),
 	)
 
-	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.jpg"
+	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/anthropic/movies.jpg"
 	data, err := urlToBase64(url)
 	if err != nil {
 		panic(err)
