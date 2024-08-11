@@ -1094,8 +1094,8 @@ func main() {
 <summary>Receipt Item Extraction from Image (using OpenAI GPT-4o)</summary>
 
 <p align="center">
-  <img src="https://templates.mediamodifier.com/645124ff36ed2f5227cbf871/supermarket-receipt-template.jpg" alt="Receipt 1" width="45%">
-  <img src="https://ocr.space/Content/Images/receipt-ocr-original.jpg" alt="Receipt 2" width="45%">
+  <img src="https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/supermarket-receipt-template.jpg" alt="Receipt 1" width="45%">
+  <img src="https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/receipt-ocr-original.jpg" alt="Receipt 2" width="45%">
 </p>
 
 <details>
