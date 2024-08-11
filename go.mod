@@ -10,6 +10,8 @@ require (
 	github.com/sashabaranov/go-openai v1.28.1
 )
 
+replace github.com/sashabaranov/go-openai => ../go-openai
+
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect

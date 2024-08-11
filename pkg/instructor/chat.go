@@ -29,7 +29,7 @@ func chatHandler(i Instructor, ctx context.Context, request interface{}, respons
 	// keep a running total of usage
 	usage := &UsageSum{}
 
-	for attempt := 0; attempt < i.MaxRetries(); attempt++ {
+	for attempt := 0; attempt <= i.MaxRetries(); attempt++ {
 
 		text, resp, err := i.chat(ctx, request, schema)
 		if err != nil {

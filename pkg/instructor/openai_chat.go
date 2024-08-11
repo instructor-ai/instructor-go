@@ -46,7 +46,7 @@ func (i *InstructorOpenAI) chat(ctx context.Context, request interface{}, schema
 		return i.chatToolCall(ctx, &req, schema)
 	case ModeJSON:
 		return i.chatJSON(ctx, &req, schema)
-	case ModeJSONStrict:
+	case ModeStructuredOutputs:
 		return i.chatJSONStrict(ctx, &req, schema)
 	case ModeJSONSchema:
 		return i.chatJSONSchema(ctx, &req, schema)
@@ -123,12 +123,68 @@ func (i *InstructorOpenAI) chatJSON(ctx context.Context, request *openai.ChatCom
 
 func (i *InstructorOpenAI) chatJSONStrict(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (string, *openai.ChatCompletionResponse, error) {
 
-	request.Messages = prepend(request.Messages, *createJSONMessage(schema))
+	// var s []byte
+	// s, _ = json.MarshalIndent(schema, "", "  ")
+	// fmt.Println(string(s))
 
-	// Set strict JSON mode
+	// oaiSchema := convertToOpenAIJSONSchema(schema.Schema)
+	// fmt.Printf(`
+	// Type                    %v
+	// Description             %v
+	// Enum                    %v
+	// Properties              %v
+	// Required                %v
+	// Items                   %v
+	// AdditionalProperties    %v
+	// `,
+	// 	oaiSchema.Type,
+	// 	oaiSchema.Description,
+	// 	oaiSchema.Enum,
+	// 	oaiSchema.Properties,
+	// 	oaiSchema.Required,
+	// 	oaiSchema.Items,
+	// 	oaiSchema.AdditionalProperties,
+	// )
+	// s, _ = json.MarshalIndent(oaiSchema, "", "  ")
+	// fmt.Println(string(s))
+
+	structName := schema.NameFromRef()
+
+	type SchemaWrapper struct {
+		Type                 string                  `json:"type"`
+		Required             []string                `json:"required"`
+		AdditionalProperties bool                    `json:"additionalProperties"`
+		Properties           *jsonschema.Definitions `json:"properties"`
+		Definitions          *jsonschema.Definitions `json:"$defs"`
+	}
+
+	required := []string{structName}
+	// // for p := schema.Definitions.; p != nil; p.Next() {
+	// for k := range schema.Definitions {
+	// 	required = append(required, k)
+	// }
+
+	properties := make(jsonschema.Definitions)
+	properties[structName] = schema.Definitions[structName]
+
+	schemaWrapper := SchemaWrapper{
+		Type:                 "object",
+		Required:             required,
+		AdditionalProperties: false,
+		Properties:           &properties,
+		Definitions:          &schema.Schema.Definitions,
+	}
+
+	rawSchema, _ := json.Marshal(schemaWrapper)
+
 	request.ResponseFormat = &openai.ChatCompletionResponseFormat{
-		Type:       openai.ChatCompletionResponseFormatTypeJSONObject,
-		JSONSchema: convertToChatCompletionResponseFormatJSONSchema(schema, true),
+		Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
+		JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
+			Name:        schema.NameFromRef(),
+			Description: schema.Description,
+			Strict:      true,
+			SchemaRaw:   toPtr(rawSchema),
+		},
 	}
 
 	resp, err := i.Client.CreateChatCompletion(ctx, *request)
@@ -137,6 +193,21 @@ func (i *InstructorOpenAI) chatJSONStrict(ctx context.Context, request *openai.C
 	}
 
 	text := resp.Choices[0].Message.Content
+
+	// TODO:
+	/*
+				Get struct contents inside:
+				    {
+						"MyStructName": {
+						    ... // what we want to marshall into struct
+						}
+		            }
+	*/
+	resMap := make(map[string]any)
+	_ = json.Unmarshal([]byte(text), &resMap)
+
+	cleanedText, _ := json.Marshal(resMap[structName])
+	text = string(cleanedText)
 
 	return text, &resp, nil
 }
@@ -155,46 +226,71 @@ func (i *InstructorOpenAI) chatJSONSchema(ctx context.Context, request *openai.C
 	return text, &resp, nil
 }
 
-func convertSchemaToDefinition(schema *jsonschema.Schema) *openaiJSONSchema.Definition {
-	definition := openaiJSONSchema.Definition{
-		Type:        openaiJSONSchema.DataType(schema.Type),
-		Description: schema.Description,
-		Required:    schema.Required,
+func convertToOpenAIJSONSchema(schema *jsonschema.Schema) *openaiJSONSchema.Definition {
+
+	oaiSchema := openaiJSONSchema.Definition{}
+
+	// Initialize properties map
+	oaiSchema.Properties = make(map[string]openaiJSONSchema.Definition)
+
+	// Convert type; default to object
+	if schema.Type != "" {
+		oaiSchema.Type = openaiJSONSchema.DataType(schema.Type)
+	} else {
+		oaiSchema.Type = openaiJSONSchema.Object
 	}
 
-	if len(schema.Enum) > 0 {
-		definition.Enum = make([]string, len(schema.Enum))
+	// Convert description
+	oaiSchema.Description = schema.Description
+
+	// Convert enum
+	if schema.Enum != nil {
+		oaiSchema.Enum = make([]string, len(schema.Enum))
 		for i, v := range schema.Enum {
-			definition.Enum[i] = v.(string)
+			oaiSchema.Enum[i] = fmt.Sprintf("%v", v)
 		}
 	}
 
+	// Convert properties
 	if schema.Properties != nil {
-		definition.Properties = make(map[string]openaiJSONSchema.Definition)
-		for el := schema.Properties.Oldest(); el != nil; el = el.Next() {
-			k, prop := el.Key, el.Value
-			definition.Properties[k] = *convertSchemaToDefinition(prop)
+		for p := schema.Properties.Oldest(); p != nil; p = p.Next() {
+			key, value := p.Key, p.Value
+			propertySchema := convertToOpenAIJSONSchema(value)
+			oaiSchema.Properties[key] = *propertySchema
 		}
 	}
 
+	// Convert items
 	if schema.Items != nil {
-		definition.Items = convertSchemaToDefinition(schema.Items)
+		itemsSchema := convertToOpenAIJSONSchema(schema.Items)
+		oaiSchema.Items = itemsSchema
 	}
 
+	// Convert additional properties
 	if schema.AdditionalProperties != nil {
-		definition.AdditionalProperties = convertSchemaToDefinition(schema.AdditionalProperties)
+		additionalPropertiesSchema := convertToOpenAIJSONSchema(schema.AdditionalProperties)
+		oaiSchema.AdditionalProperties = additionalPropertiesSchema
 	}
 
-	return &definition
-}
+	// Convert defintions
+	if schema.Definitions != nil {
+		for key, value := range schema.Definitions {
+			oaiSchema.Required = append(oaiSchema.Required, key)
+			fmt.Printf("%+v\n", oaiSchema.Required)
 
-func convertToChatCompletionResponseFormatJSONSchema(schema *Schema, strict bool) *openai.ChatCompletionResponseFormatJSONSchema {
-	return &openai.ChatCompletionResponseFormatJSONSchema{
-		Name:        schema.Name,
-		Description: schema.Description,
-		Schema:      *convertSchemaToDefinition(schema.Schema),
-		Strict:      strict,
+			definitionSchema := convertToOpenAIJSONSchema(value)
+			oaiSchema.Properties[key] = *definitionSchema
+		}
 	}
+
+	if len(oaiSchema.Properties) > 0 {
+		oaiSchema.Required = []string{}
+		for key := range oaiSchema.Properties {
+			oaiSchema.Required = append(oaiSchema.Required, key)
+		}
+	}
+
+	return &oaiSchema
 }
 
 func (i *InstructorOpenAI) emptyResponseWithUsageSum(usage *UsageSum) interface{} {
