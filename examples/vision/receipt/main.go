@@ -97,9 +97,9 @@ func main() {
 
 	urls := []string{
 		// source: https://templates.mediamodifier.com/645124ff36ed2f5227cbf871/supermarket-receipt-template.jpg
-		"https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/supermarket-receipt-template.jpg",
+        "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/receipt/supermarket-receipt-template.jpg",
 		// source: https://ocr.space/Content/Images/receipt-ocr-original.jpg
-		"https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/receipt-ocr-original.jpg",
+		"https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/receipt/receipt-ocr-original.jpg",
 	}
 
 	for _, url := range urls {
