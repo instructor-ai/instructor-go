@@ -1093,6 +1093,9 @@ func main() {
 <details>
 <summary>Receipt Item Extraction from Image (using OpenAI GPT-4o)</summary>
 
+![Receipt 1](https://templates.mediamodifier.com/645124ff36ed2f5227cbf871/supermarket-receipt-template.jpg)
+![Receipt 2](https://ocr.space/Content/Images/receipt-ocr-original.jpg]
+
 <details>
 <summary>Running</summary>
 
