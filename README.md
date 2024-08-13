@@ -160,7 +160,7 @@ func segment(ctx context.Context, data string) *Searches {
 		Model: openai.GPT4o,
 		Messages: []openai.ChatCompletionMessage{
 			{
-				Role:    instructor.RoleUser,
+				Role:    openai.ChatMessageRoleUser,
 				Content: fmt.Sprintf("Consider the data below: '\n%s' and segment it into multiple search queries", data),
 			},
 		},
@@ -298,7 +298,7 @@ func assert(condition bool, message string) {
 <details>
 <summary>Images with OpenAI</summary>
 
-![List of movies](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png)
+![List of books](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png)
 
 <details>
 <summary>Running</summary>
@@ -349,14 +349,14 @@ func main() {
 		instructor.WithMaxRetries(3),
 	)
 
-	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png"
+	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/openai/books.png"
 
 	var bookCatalog BookCatalog
 	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model: openai.GPT4o,
 		Messages: []openai.ChatCompletionMessage{
 			{
-				Role: instructor.RoleUser,
+				Role: openai.ChatMessageRoleUser,
 				MultiContent: []openai.ChatMessagePart{
 					{
 						Type: openai.ChatMessagePartTypeText,
@@ -437,7 +437,7 @@ func main() {
 <details>
 <summary>Images with Anthropic</summary>
 
-![List of books](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.png)
+![List of movies](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.png)
 
 <details>
 <summary>Running</summary>
@@ -493,7 +493,7 @@ func main() {
 		instructor.WithMaxRetries(3),
 	)
 
-	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.jpg"
+	url := "https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/anthropic/movies.jpg"
 	data, err := urlToBase64(url)
 	if err != nil {
 		panic(err)
@@ -504,7 +504,7 @@ func main() {
 		Model: "claude-3-haiku-20240307",
 		Messages: []anthropic.Message{
 			{
-				Role: instructor.RoleUser,
+				Role: anthropic.RoleUser,
 				Content: []anthropic.MessageContent{
 					anthropic.NewImageMessageContent(anthropic.MessageContentImageSource{
 						Type:      "base64",
@@ -696,7 +696,7 @@ Preferred Shopping Times: Weekend Evenings
 		Model: openai.GPT4o20240513,
 		Messages: []openai.ChatCompletionMessage{
 			{
-				Role: instructor.RoleSystem,
+				Role: openai.ChatMessageRoleSystem,
 				Content: fmt.Sprintf(`
 Generate the product recommendations from the product list based on the customer profile.
 Return in order of highest recommended first.
@@ -704,7 +704,7 @@ Product list:
 %s`, productList),
 			},
 			{
-				Role:    instructor.RoleUser,
+				Role:    openai.ChatMessageRoleUser,
 				Content: fmt.Sprintf("User profile:\n%s", profileData),
 			},
 		},
