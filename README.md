@@ -34,15 +34,12 @@ As shown in the example below, by adding extra metadata to each struct field (vi
 
 > For more information on the `jsonschema` tags available, see the [`jsonschema` godoc](https://pkg.go.dev/github.com/invopop/jsonschema?utm_source=godoc).
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export OPENAI_API_KEY=<Your OpenAI API Key>
 go run examples/user/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -105,15 +102,12 @@ Age:  %d
 <details>
 <summary>Function Calling with OpenAI</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export OPENAI_API_KEY=<Your OpenAI API Key>
 go run examples/function_calling/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -195,15 +189,12 @@ func main() {
 <details>
 <summary>Text Classification with Anthropic</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export ANTHROPIC_API_KEY=<Your Anthropic API Key>
 go run examples/classification/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -300,15 +291,12 @@ func assert(condition bool, message string) {
 
 ![List of movies](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/openai/books.png)
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export OPENAI_API_KEY=<Your OpenAI API Key>
 go run examples/vision/openai/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -439,15 +427,12 @@ func main() {
 
 ![List of books](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/anthropic/movies.png)
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export ANTHROPIC_API_KEY=<Your Anthropic API Key>
 go run examples/vision/anthropic/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -608,15 +593,12 @@ func urlToBase64(url string) (string, error) {
 <details>
 <summary>Streaming with OpenAI</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export OPENAI_API_KEY=<Your OpenAI API Key>
 go run examples/streaming/openai/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -754,15 +736,12 @@ Product list:
 <details>
 <summary>Document Segmentation with Cohere</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export COHERE_API_KEY=<Your Cohere API Key>
 go run examples/document_segmentation/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -915,15 +894,12 @@ func getSectionsText(structuredDoc *StructuredDocument, line2text map[int]string
 <details>
 <summary>Streaming with Cohere</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export COHERE_API_KEY=<Your Cohere API Key>
 go run examples/streaming/cohere/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -1008,14 +984,11 @@ func toPtr[T any](val T) *T {
 <details>
 <summary>Local, Self-Hosted Models with Ollama (via OpenAI API Support)</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 go run examples/ollama/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -1093,14 +1066,11 @@ func main() {
 <details>
 <summary>Task Ticket Creator from Transcript - OpenAI Structured Outputs (Strict JSON Mode)</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 go run examples/auto_ticketer/main.go
 ```
-
-</details>
 
 ```go
 /*
