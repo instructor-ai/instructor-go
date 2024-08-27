@@ -1238,24 +1238,6 @@ Total: $98.21
 
 </details>
 
-<details>
-
-<summary>Task Ticket Creator from Transcript - OpenAI Structured Outputs (Strict JSON Mode)</summary>
-
-<details>
-
-Running
-
-```bash
-export OPENAI_API_KEY=<Your OpenAI API Key>
-go run examples/auto_ticketer/main.go
-```
-
-```go
-```
-
-</details>
-
 <summary>Task Ticket Creator from Transcript - OpenAI Structured Outputs (Strict JSON Mode)</summary>
 
 Running
