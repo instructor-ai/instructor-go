@@ -112,50 +112,50 @@ func main() {
 		println("\n--------------------------------\n")
 	}
 	/*
-	   Receipt:
+	   receipt:
 
-	   	Item: Lorem ipsum, Price: $9.20
-	   	Item: Lorem ipsum dolor sit, Price: $19.20
-	   	Item: Lorem ipsum dolor sit amet, Price: $15.00
-	   	Item: Lorem ipsum, Price: $15.00
-	   	Item: Lorem ipsum, Price: $15.00
-	   	Item: Lorem ipsum dolor sit, Price: $15.00
-	   	Item: Lorem ipsum, Price: $19.20
+	   	item: lorem ipsum, price: $9.20
+	   	item: lorem ipsum dolor sit, price: $19.20
+	   	item: lorem ipsum dolor sit amet, price: $15.00
+	   	item: lorem ipsum, price: $15.00
+	   	item: lorem ipsum, price: $15.00
+	   	item: lorem ipsum dolor sit, price: $15.00
+	   	item: lorem ipsum, price: $19.20
 
-	   Total: $107.60
+	   total: $107.60
 
 	   --------------------------------
 
-	   Receipt:
+	   receipt:
 
-	   	Item: PET TOY, Price: $1.97
-	   	Item: FLOPPY PUPPY, Price: $1.97
-	   	Item: SSSUPREME S, Price: $4.97
-	   	Item: 2.5 SQUEAK, Price: $5.92
-	   	Item: MUNCHY DMBEL, Price: $3.77
-	   	Item: DOG TREAT, Price: $2.92
-	   	Item: PED PCH 1, Price: $0.50
-	   	Item: PED PCH 1, Price: $0.50
-	   	Item: HNYMD SMORES, Price: $3.98
-	   	Item: FRENCH DRSNG, Price: $1.98
-	   	Item: 3 ORANGES, Price: $5.47
-	   	Item: BABY CARROTS, Price: $1.48
-	   	Item: COLLARDS, Price: $1.24
-	   	Item: CALZONE, Price: $2.50
-	   	Item: MM RVW MNT, Price: $19.77
-	   	Item: STKOBRLPLIABL, Price: $1.97
-	   	Item: STKOBRLPLIABL, Price: $1.97
-	   	Item: STKO SUNFLWR, Price: $0.97
-	   	Item: STKO SUNFLWR, Price: $0.97
-	   	Item: STKO SUNFLWR, Price: $0.97
-	   	Item: STKO SUNFLWR, Price: $0.97
-	   	Item: BLING BEADS, Price: $0.97
-	   	Item: GREAT VALUE, Price: $9.97
-	   	Item: LIPTON, Price: $4.44
-	   	Item: DRY DOG, Price: $12.44
-	   	Item: COUPON 2310652, Price: $-1.00
-	   	Item: TAX, Price: $4.59
+	   	item: pet toy, price: $1.97
+	   	item: floppy puppy, price: $1.97
+	   	item: sssupreme s, price: $4.97
+	   	item: 2.5 squeak, price: $5.92
+	   	item: munchy dmbel, price: $3.77
+	   	item: dog treat, price: $2.92
+	   	item: ped pch 1, price: $0.50
+	   	item: ped pch 1, price: $0.50
+	   	item: hnymd smores, price: $3.98
+	   	item: french drsng, price: $1.98
+	   	item: 3 oranges, price: $5.47
+	   	item: baby carrots, price: $1.48
+	   	item: collards, price: $1.24
+	   	item: calzone, price: $2.50
+	   	item: mm rvw mnt, price: $19.77
+	   	item: stkobrlpliabl, price: $1.97
+	   	item: stkobrlpliabl, price: $1.97
+	   	item: stko sunflwr, price: $0.97
+	   	item: stko sunflwr, price: $0.97
+	   	item: stko sunflwr, price: $0.97
+	   	item: stko sunflwr, price: $0.97
+	   	item: bling beads, price: $0.97
+	   	item: great value, price: $9.97
+	   	item: lipton, price: $4.44
+	   	item: dry dog, price: $12.44
+	   	item: coupon 2310652, price: $-1.00
+	   	item: tax, price: $4.59
 
-	   Total: $98.21
+	   total: $98.21
 	*/
 }
