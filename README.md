@@ -34,15 +34,12 @@ As shown in the example below, by adding extra metadata to each struct field (vi
 
 > For more information on the `jsonschema` tags available, see the [`jsonschema` godoc](https://pkg.go.dev/github.com/invopop/jsonschema?utm_source=godoc).
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export OPENAI_API_KEY=<Your OpenAI API Key>
 go run examples/user/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -105,15 +102,12 @@ Age:  %d
 <details>
 <summary>Function Calling with OpenAI</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export OPENAI_API_KEY=<Your OpenAI API Key>
 go run examples/function_calling/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -195,15 +189,12 @@ func main() {
 <details>
 <summary>Text Classification with Anthropic</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export ANTHROPIC_API_KEY=<Your Anthropic API Key>
 go run examples/classification/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -298,17 +289,14 @@ func assert(condition bool, message string) {
 <details>
 <summary>Images with OpenAI</summary>
 
-![List of books](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/openai/books.png)
+![List of books](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/openai/books.png)
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export OPENAI_API_KEY=<Your OpenAI API Key>
-go run examples/images/openai/main.go
+go run examples/vision/openai/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -437,17 +425,14 @@ func main() {
 <details>
 <summary>Images with Anthropic</summary>
 
-![List of movies](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/images/anthropic/movies.png)
+![List of movies](https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/anthropic/movies.png)
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export ANTHROPIC_API_KEY=<Your Anthropic API Key>
-go run examples/images/anthropic/main.go
+go run examples/vision/anthropic/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -608,15 +593,12 @@ func urlToBase64(url string) (string, error) {
 <details>
 <summary>Streaming with OpenAI</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export OPENAI_API_KEY=<Your OpenAI API Key>
 go run examples/streaming/openai/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -754,15 +736,12 @@ Product list:
 <details>
 <summary>Document Segmentation with Cohere</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export COHERE_API_KEY=<Your Cohere API Key>
 go run examples/document_segmentation/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -915,15 +894,12 @@ func getSectionsText(structuredDoc *StructuredDocument, line2text map[int]string
 <details>
 <summary>Streaming with Cohere</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 export COHERE_API_KEY=<Your Cohere API Key>
 go run examples/streaming/cohere/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -1008,14 +984,11 @@ func toPtr[T any](val T) *T {
 <details>
 <summary>Local, Self-Hosted Models with Ollama (via OpenAI API Support)</summary>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 go run examples/ollama/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -1091,6 +1064,7 @@ func main() {
 </details>
 
 <details>
+
 <summary>Receipt Item Extraction from Image (using OpenAI GPT-4o)</summary>
 
 <p align="center">
@@ -1098,14 +1072,11 @@ func main() {
   <img src="https://raw.githubusercontent.com/instructor-ai/instructor-go/main/examples/vision/receipt/receipt-ocr-original.jpg" alt="Receipt 2" width="45%">
 </p>
 
-<details>
-<summary>Running</summary>
+Running
 
 ```bash
 go run examples/vision/receipt/main.go
 ```
-
-</details>
 
 ```go
 package main
@@ -1262,6 +1233,192 @@ Receipt:
   Item: TAX, Price: $4.59
 Total: $98.21
 */
+}
+```
+
+</details>
+
+<details>
+
+<summary>Task Ticket Creator from Transcript - OpenAI Structured Outputs (Strict JSON Mode)</summary>
+
+<details>
+
+Running
+
+```bash
+export OPENAI_API_KEY=<Your OpenAI API Key>
+go run examples/auto_ticketer/main.go
+```
+
+```go
+```
+
+</details>
+
+<summary>Task Ticket Creator from Transcript - OpenAI Structured Outputs (Strict JSON Mode)</summary>
+
+Running
+
+```bash
+export OPENAI_API_KEY=<Your OpenAI API Key>
+go run examples/auto_ticketer/main.go
+```
+
+```go
+/*
+ *  Original example in Python: https://github.com/jxnl/instructor/blob/11125a7c831a26e2a4deaef4129f2b4845a7e079/examples/auto-ticketer/run.py
+ */
+
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/instructor-ai/instructor-go/pkg/instructor"
+	openai "github.com/sashabaranov/go-openai"
+)
+
+type PriorityEnum string
+
+const (
+	High   PriorityEnum = "High"
+	Medium PriorityEnum = "Medium"
+	Low    PriorityEnum = "Low"
+)
+
+type Subtask struct {
+	ID   int    `json:"id"      jsonschema:"title=unique identifier for the subtask,description=Unique identifier for the subtask"`
+	Name string `json:"name"    jsonschema:"title=name of the subtask,description=Informative title of the subtask"`
+}
+
+type Ticket struct {
+	ID           int          `json:"id"                        jsonschema:"title=unique identifier for the ticket,description=Unique identifier for the ticket"`
+	Name         string       `json:"name"                      jsonschema:"title=name of the task,description=Title of the task"`
+	Description  string       `json:"description"               jsonschema:"title=description of the task,description=Detailed description of the task"`
+	Priority     PriorityEnum `json:"priority"                  jsonschema:"title=priority level,description=Priority level"`
+	Assignees    []string     `json:"assignees"                 jsonschema:"title=list of users assigned to the task,description=List of users assigned to the task"`
+	Subtasks     []Subtask    `json:"subtasks"        jsonschema:"title=list of subtasks associated with the main task,description=List of subtasks associated with the main task"`
+	Dependencies []int        `json:"dependencies"    jsonschema:"title=list of ticket IDs that this ticket depends on,description=List of ticket IDs that this ticket depends on"`
+}
+
+type ActionItems struct {
+	Tickets []Ticket `json:"tickets"`
+}
+
+func (ai ActionItems) String() string {
+	var sb strings.Builder
+
+	for _, ticket := range ai.Tickets {
+		sb.WriteString(fmt.Sprintf("Ticket ID: %d\n", ticket.ID))
+		sb.WriteString(fmt.Sprintf("  Name: %s\n", ticket.Name))
+		sb.WriteString(fmt.Sprintf("  Description: %s\n", ticket.Description))
+		sb.WriteString(fmt.Sprintf("  Priority: %s\n", ticket.Priority))
+		sb.WriteString(fmt.Sprintf("  Assignees: %s\n", strings.Join(ticket.Assignees, ", ")))
+
+		if len(ticket.Subtasks) > 0 {
+			sb.WriteString("  Subtasks:\n")
+			for _, subtask := range ticket.Subtasks {
+				sb.WriteString(fmt.Sprintf("    - Subtask ID: %d, Name: %s\n", subtask.ID, subtask.Name))
+			}
+		}
+
+		if len(ticket.Dependencies) > 0 {
+			sb.WriteString(fmt.Sprintf("  Dependencies: %v\n", ticket.Dependencies))
+		}
+
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
+}
+
+func main() {
+	ctx := context.Background()
+
+	client := instructor.FromOpenAI(
+		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
+		instructor.WithMode(instructor.ModeJSONStrict),
+		instructor.WithMaxRetries(0),
+	)
+
+	transcript := `
+Alice: Hey team, we have several critical tasks we need to tackle for the upcoming release. First, we need to work on improving the authentication system. It's a top priority.
+
+Bob: Got it, Alice. I can take the lead on the authentication improvements. Are there any specific areas you want me to focus on?
+
+Alice: Good question, Bob. We need both a front-end revamp and back-end optimization. So basically, two sub-tasks.
+
+Carol: I can help with the front-end part of the authentication system.
+
+Bob: Great, Carol. I'll handle the back-end optimization then.
+
+Alice: Perfect. Now, after the authentication system is improved, we have to integrate it with our new billing system. That's a medium priority task.
+
+Carol: Is the new billing system already in place?
+
+Alice: No, it's actually another task. So it's a dependency for the integration task. Bob, can you also handle the billing system?
+
+Bob: Sure, but I'll need to complete the back-end optimization of the authentication system first, so it's dependent on that.
+
+Alice: Understood. Lastly, we also need to update our user documentation to reflect all these changes. It's a low-priority task but still important.
+
+Carol: I can take that on once the front-end changes for the authentication system are done. So, it would be dependent on that.
+
+Alice: Sounds like a plan. Let's get these tasks modeled out and get started.
+`
+
+	var actionItems ActionItems
+	_, err := client.CreateChatCompletion(
+		ctx,
+		openai.ChatCompletionRequest{
+			Model:       openai.GPT4oMini20240718,
+			Temperature: .2,
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    openai.ChatMessageRoleSystem,
+					Content: "The following is a transcript of a meeting between a manager and their team. The manager is assigning tasks to their team members and creating action items for them to complete.",
+				},
+				{
+					Role:    openai.ChatMessageRoleUser,
+					Content: fmt.Sprintf("Create the action items for the following transcript: %s", transcript),
+				},
+			},
+		},
+		&actionItems,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	println(actionItems.String())
+	/*
+		Ticket ID: 1
+		  Name: Improve Authentication System
+		  Description: Revamp the front-end and optimize the back-end of the authentication system.
+		  Priority: high
+		  Assignees: Bob, Carol
+		  Subtasks:
+		    - Subtask ID: 1, Name: Front-end Revamp
+		    - Subtask ID: 2, Name: Back-end Optimization
+
+		Ticket ID: 2
+		  Name: Integrate Authentication with New Billing System
+		  Description: Integrate the improved authentication system with the new billing system.
+		  Priority: medium
+		  Assignees: Bob
+		  Dependencies: [1]
+
+		Ticket ID: 3
+		  Name: Update User Documentation
+		  Description: Update the user documentation to reflect changes made to the authentication system.
+		  Priority: low
+		  Assignees: Carol
+		  Dependencies: [1]
+	*/
 }
 ```
 

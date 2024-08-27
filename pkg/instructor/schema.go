@@ -3,6 +3,7 @@ package instructor
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 
 	"github.com/invopop/jsonschema"
 )
@@ -68,4 +69,8 @@ func ToFunctionSchema(tType reflect.Type, tSchema *jsonschema.Schema) []Function
 	}
 
 	return fds
+}
+
+func (s *Schema) NameFromRef() string {
+	return strings.Split(s.Ref, "/")[2] // ex: '#/$defs/MyStruct'
 }

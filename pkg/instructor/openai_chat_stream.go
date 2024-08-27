@@ -36,7 +36,9 @@ func (i *InstructorOpenAI) chatStream(ctx context.Context, request interface{}, 
 
 	switch i.Mode() {
 	case ModeToolCall:
-		return i.chatToolCallStream(ctx, &req, schema)
+		return i.chatToolCallStream(ctx, &req, schema, false)
+	case ModeToolCallStrict:
+		return i.chatToolCallStream(ctx, &req, schema, true)
 	case ModeJSON:
 		return i.chatJSONStream(ctx, &req, schema)
 	case ModeJSONSchema:
@@ -46,8 +48,8 @@ func (i *InstructorOpenAI) chatStream(ctx context.Context, request interface{}, 
 	}
 }
 
-func (i *InstructorOpenAI) chatToolCallStream(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (<-chan string, error) {
-	request.Tools = createOpenAITools(schema)
+func (i *InstructorOpenAI) chatToolCallStream(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema, strict bool) (<-chan string, error) {
+	request.Tools = createOpenAITools(schema, strict)
 	return i.createStream(ctx, request)
 }
 
@@ -61,23 +63,6 @@ func (i *InstructorOpenAI) chatJSONStream(ctx context.Context, request *openai.C
 func (i *InstructorOpenAI) chatJSONSchemaStream(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (<-chan string, error) {
 	request.Messages = prepend(request.Messages, *createJSONMessageStream(schema))
 	return i.createStream(ctx, request)
-}
-
-func createOpenAITools(schema *Schema) []openai.Tool {
-	tools := make([]openai.Tool, 0, len(schema.Functions))
-	for _, function := range schema.Functions {
-		f := openai.FunctionDefinition{
-			Name:        function.Name,
-			Description: function.Description,
-			Parameters:  function.Parameters,
-		}
-		t := openai.Tool{
-			Type:     "function",
-			Function: &f,
-		}
-		tools = append(tools, t)
-	}
-	return tools
 }
 
 func createJSONMessageStream(schema *Schema) *openai.ChatCompletionMessage {

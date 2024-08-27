@@ -6,8 +6,17 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/invopop/jsonschema"
 	openai "github.com/sashabaranov/go-openai"
 )
+
+type ResponseFormatSchemaWrapper struct {
+	Type                 string                  `json:"type"`
+	Required             []string                `json:"required"`
+	AdditionalProperties bool                    `json:"additionalProperties"`
+	Properties           *jsonschema.Definitions `json:"properties"`
+	Definitions          *jsonschema.Definitions `json:"$defs"`
+}
 
 func (i *InstructorOpenAI) CreateChatCompletion(
 	ctx context.Context,
@@ -41,9 +50,13 @@ func (i *InstructorOpenAI) chat(ctx context.Context, request interface{}, schema
 
 	switch i.Mode() {
 	case ModeToolCall:
-		return i.chatToolCall(ctx, &req, schema)
+		return i.chatToolCall(ctx, &req, schema, false)
+	case ModeToolCallStrict:
+		return i.chatToolCall(ctx, &req, schema, true)
 	case ModeJSON:
-		return i.chatJSON(ctx, &req, schema)
+		return i.chatJSON(ctx, &req, schema, false)
+	case ModeJSONStrict:
+		return i.chatJSON(ctx, &req, schema, true)
 	case ModeJSONSchema:
 		return i.chatJSONSchema(ctx, &req, schema)
 	default:
@@ -51,9 +64,9 @@ func (i *InstructorOpenAI) chat(ctx context.Context, request interface{}, schema
 	}
 }
 
-func (i *InstructorOpenAI) chatToolCall(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (string, *openai.ChatCompletionResponse, error) {
+func (i *InstructorOpenAI) chatToolCall(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema, strict bool) (string, *openai.ChatCompletionResponse, error) {
 
-	request.Tools = createOpenAITools(schema)
+	request.Tools = createOpenAITools(schema, strict)
 
 	resp, err := i.Client.CreateChatCompletion(ctx, *request)
 	if err != nil {
@@ -100,12 +113,40 @@ func (i *InstructorOpenAI) chatToolCall(ctx context.Context, request *openai.Cha
 	return string(resultJSON), &resp, nil
 }
 
-func (i *InstructorOpenAI) chatJSON(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema) (string, *openai.ChatCompletionResponse, error) {
+func (i *InstructorOpenAI) chatJSON(ctx context.Context, request *openai.ChatCompletionRequest, schema *Schema, strict bool) (string, *openai.ChatCompletionResponse, error) {
+
+	structName := schema.NameFromRef()
 
 	request.Messages = prepend(request.Messages, *createJSONMessage(schema))
 
-	// Set JSON mode
-	request.ResponseFormat = &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject}
+	if strict {
+		schemaWrapper := ResponseFormatSchemaWrapper{
+			Type:        "object",
+			Required:    []string{structName},
+			Definitions: &schema.Schema.Definitions,
+			Properties: &jsonschema.Definitions{
+				structName: schema.Definitions[structName],
+			},
+			AdditionalProperties: false,
+		}
+
+		schemaJSON, _ := json.Marshal(schemaWrapper)
+		schemaRaw := json.RawMessage(schemaJSON)
+
+		request.ResponseFormat = &openai.ChatCompletionResponseFormat{
+			Type: openai.ChatCompletionResponseFormatTypeJSONSchema,
+			JSONSchema: &openai.ChatCompletionResponseFormatJSONSchema{
+				Name:        structName,
+				Description: schema.Description,
+				Schema:      schemaRaw,
+				Strict:      true,
+			},
+		}
+	} else {
+		request.ResponseFormat = &openai.ChatCompletionResponseFormat{
+			Type: openai.ChatCompletionResponseFormatTypeJSONObject,
+		}
+	}
 
 	resp, err := i.Client.CreateChatCompletion(ctx, *request)
 	if err != nil {
@@ -113,6 +154,14 @@ func (i *InstructorOpenAI) chatJSON(ctx context.Context, request *openai.ChatCom
 	}
 
 	text := resp.Choices[0].Message.Content
+
+	if strict {
+		resMap := make(map[string]any)
+		_ = json.Unmarshal([]byte(text), &resMap)
+
+		cleanedText, _ := json.Marshal(resMap[structName])
+		text = string(cleanedText)
+	}
 
 	return text, &resp, nil
 }
@@ -193,6 +242,24 @@ Make sure to return an instance of the JSON, not the schema itself
 	}
 
 	return msg
+}
+
+func createOpenAITools(schema *Schema, strict bool) []openai.Tool {
+	tools := make([]openai.Tool, 0, len(schema.Functions))
+	for _, function := range schema.Functions {
+		f := openai.FunctionDefinition{
+			Name:        function.Name,
+			Description: function.Description,
+			Parameters:  function.Parameters,
+			Strict:      strict,
+		}
+		t := openai.Tool{
+			Type:     "function",
+			Function: &f,
+		}
+		tools = append(tools, t)
+	}
+	return tools
 }
 
 func nilOpenaiRespWithUsage(resp *openai.ChatCompletionResponse) *openai.ChatCompletionResponse {
