@@ -1069,6 +1069,7 @@ func main() {
 Running
 
 ```bash
+export OPENAI_API_KEY=<Your OpenAI API Key>
 go run examples/auto_ticketer/main.go
 ```
 
