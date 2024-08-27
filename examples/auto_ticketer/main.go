@@ -47,7 +47,7 @@ func main() {
 
 	client := instructor.FromOpenAI(
 		openai.NewClient(os.Getenv("OPENAI_API_KEY")),
-		instructor.WithMode(instructor.ModeStructuredOutputs),
+		instructor.WithMode(instructor.ModeJSONStrict),
 		instructor.WithMaxRetries(0),
 	)
 

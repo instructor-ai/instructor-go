@@ -7,10 +7,8 @@ require (
 	github.com/go-playground/validator/v10 v10.21.0
 	github.com/invopop/jsonschema v0.12.0
 	github.com/liushuangls/go-anthropic/v2 v2.1.0
-	github.com/sashabaranov/go-openai v1.28.1
+	github.com/sashabaranov/go-openai v1.29.0
 )
-
-replace github.com/sashabaranov/go-openai => ../go-openai
 
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
