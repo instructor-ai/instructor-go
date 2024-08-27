@@ -1238,6 +1238,8 @@ Total: $98.21
 
 </details>
 
+<details>
+
 <summary>Task Ticket Creator from Transcript - OpenAI Structured Outputs (Strict JSON Mode)</summary>
 
 Running
