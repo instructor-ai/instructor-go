@@ -6,10 +6,9 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"os"
+	"strings"
 
 	"github.com/instructor-ai/instructor-go/pkg/instructor"
 	openai "github.com/sashabaranov/go-openai"
@@ -40,6 +39,33 @@ type Ticket struct {
 
 type ActionItems struct {
 	Tickets []Ticket `json:"tickets"`
+}
+
+func (ai ActionItems) String() string {
+	var sb strings.Builder
+
+	for _, ticket := range ai.Tickets {
+		sb.WriteString(fmt.Sprintf("Ticket ID: %d\n", ticket.ID))
+		sb.WriteString(fmt.Sprintf("  Name: %s\n", ticket.Name))
+		sb.WriteString(fmt.Sprintf("  Description: %s\n", ticket.Description))
+		sb.WriteString(fmt.Sprintf("  Priority: %s\n", ticket.Priority))
+		sb.WriteString(fmt.Sprintf("  Assignees: %s\n", strings.Join(ticket.Assignees, ", ")))
+
+		if len(ticket.Subtasks) > 0 {
+			sb.WriteString("  Subtasks:\n")
+			for _, subtask := range ticket.Subtasks {
+				sb.WriteString(fmt.Sprintf("    - Subtask ID: %d, Name: %s\n", subtask.ID, subtask.Name))
+			}
+		}
+
+		if len(ticket.Dependencies) > 0 {
+			sb.WriteString(fmt.Sprintf("  Dependencies: %v\n", ticket.Dependencies))
+		}
+
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
 }
 
 func main() {
@@ -78,10 +104,11 @@ Alice: Sounds like a plan. Let's get these tasks modeled out and get started.
 `
 
 	var actionItems ActionItems
-	resp, err := client.CreateChatCompletion(
+	_, err := client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model: openai.GPT4oMini20240718,
+			Model:       openai.GPT4oMini20240718,
+			Temperature: .2,
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleSystem,
@@ -95,15 +122,33 @@ Alice: Sounds like a plan. Let's get these tasks modeled out and get started.
 		},
 		&actionItems,
 	)
-	_ = resp // sends back original response so no information loss from original API
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
-	prettyJSON, err := json.MarshalIndent(actionItems, "", "  ")
-	if err != nil {
-		log.Fatal(err)
-	}
+	println(actionItems.String())
+	/*
+		Ticket ID: 1
+		  Name: Improve Authentication System
+		  Description: Revamp the front-end and optimize the back-end of the authentication system.
+		  Priority: high
+		  Assignees: Bob, Carol
+		  Subtasks:
+		    - Subtask ID: 1, Name: Front-end Revamp
+		    - Subtask ID: 2, Name: Back-end Optimization
 
-	fmt.Println(string(prettyJSON))
+		Ticket ID: 2
+		  Name: Integrate Authentication with New Billing System
+		  Description: Integrate the improved authentication system with the new billing system.
+		  Priority: medium
+		  Assignees: Bob
+		  Dependencies: [1]
+
+		Ticket ID: 3
+		  Name: Update User Documentation
+		  Description: Update the user documentation to reflect changes made to the authentication system.
+		  Priority: low
+		  Assignees: Carol
+		  Dependencies: [1]
+	*/
 }
